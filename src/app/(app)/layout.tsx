@@ -1,6 +1,14 @@
-import { BookOpen, LogOut, Plus, Settings, Sparkles } from "lucide-react";
+import {
+  BookOpen,
+  LogOut,
+  Plus,
+  Settings,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +51,6 @@ export default async function AppLayout({
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-2">
-            {/* Suggerimenti: solo icona su mobile, icona+testo su desktop */}
             <Button
               render={<Link href="/suggestions" />}
               nativeButton={false}
@@ -66,7 +73,28 @@ export default async function AppLayout({
               Suggerimenti
             </Button>
 
-            {/* Aggiungi: icona su mobile, icona+testo su desktop */}
+            <Button
+              render={<Link href="/users" />}
+              nativeButton={false}
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Cerca utenti"
+              title="Cerca utenti"
+              className="text-muted-foreground hover:text-foreground sm:hidden"
+            >
+              <Users className="size-4" />
+            </Button>
+            <Button
+              render={<Link href="/users" />}
+              nativeButton={false}
+              variant="ghost"
+              size="sm"
+              className="hidden gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
+            >
+              <Users className="size-3.5" />
+              Utenti
+            </Button>
+
             <Button
               render={<Link href="/books/add" />}
               nativeButton={false}
@@ -87,7 +115,6 @@ export default async function AppLayout({
               Aggiungi libro
             </Button>
 
-            {/* Avatar */}
             {profile && (
               <Link
                 href={`/u/${profile.username}`}
@@ -106,7 +133,6 @@ export default async function AppLayout({
               </Link>
             )}
 
-            {/* Settings e Logout: solo su desktop su mobile si accede dalle impostazioni */}
             <Button
               render={<Link href="/settings" />}
               nativeButton={false}

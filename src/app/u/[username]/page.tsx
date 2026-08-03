@@ -1,21 +1,46 @@
 import { BookMarked, BookOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FollowButton } from "@/components/follow-button";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { PublicBookCard } from "@/components/public-book-card";
 import { PublicLibraryView } from "@/components/public-library-view";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { createPublicClient } from "@/lib/supabase/public";
 
-// Public profiles don't depend on the visitor's session (RLS allows
-// anonymous reads on profiles/user_books), so this page uses a cookie-free
-// client and stays eligible for ISR instead of running as a serverless
-// function on every visit — the main defense against unpredictable public
-// traffic (shared links, bots, link-unfurlers) on a free Vercel plan.
+type ProfileSummary = {
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+function ProfileRow({ profile }: { profile: ProfileSummary }) {
+  const name = profile.displayName || profile.username;
+  return (
+    <Link
+      href={`/u/${profile.username}`}
+      className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-secondary/50"
+    >
+      <ProfileAvatar name={name} avatarUrl={profile.avatarUrl} size="md" />
+      <div className="min-w-0">
+        <p className="truncate font-serif text-sm">{name}</p>
+        <p className="truncate font-mono text-xs text-muted-foreground">
+          @{profile.username}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export const revalidate = 300;
 
-// No usernames are known at build time, but an empty array (rather than
-// omitting this function) is what tells Next to still statically cache
-// each page on its first visit instead of rendering it dynamically forever.
 export async function generateStaticParams() {
   return [];
 }
@@ -69,6 +94,74 @@ export default async function PublicProfilePage({
   const readCount = books.filter((b) => b.status === "read").length;
   const readingCount = books.filter((b) => b.status === "reading").length;
   const wishlistCount = books.filter((b) => b.status === "wishlist").length;
+
+  const [{ data: followerRows }, { data: followingRows }] = await Promise.all([
+    supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("followed_id", profile.id),
+    supabase
+      .from("follows")
+      .select("followed_id")
+      .eq("follower_id", profile.id),
+  ]);
+
+  const followerIds = (followerRows ?? []).map((r) => r.follower_id);
+  const followingIds = (followingRows ?? []).map((r) => r.followed_id);
+
+  const [{ data: followerProfiles }, { data: followingProfiles }] =
+    await Promise.all([
+      followerIds.length > 0
+        ? supabase
+            .from("profiles")
+            .select("username, display_name, avatar_url")
+            .in("id", followerIds)
+        : Promise.resolve({ data: [] }),
+      followingIds.length > 0
+        ? supabase
+            .from("profiles")
+            .select("username, display_name, avatar_url")
+            .in("id", followingIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+  const followers: ProfileSummary[] = (followerProfiles ?? []).map((p) => ({
+    username: p.username,
+    displayName: p.display_name,
+    avatarUrl: p.avatar_url,
+  }));
+  const following: ProfileSummary[] = (followingProfiles ?? []).map((p) => ({
+    username: p.username,
+    displayName: p.display_name,
+    avatarUrl: p.avatar_url,
+  }));
+
+  const { data: lists } = await supabase
+    .from("lists")
+    .select("id, name")
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: true });
+
+  const listIds = (lists ?? []).map((list) => list.id);
+  const { data: listBookRows } =
+    listIds.length > 0
+      ? await supabase
+          .from("list_books")
+          .select("list_id, user_book_id")
+          .in("list_id", listIds)
+      : { data: [] };
+
+  const booksByUserBookId = new Map(books.map((b) => [b.userBookId, b]));
+  const listsWithBooks = (lists ?? [])
+    .map((list) => ({
+      id: list.id,
+      name: list.name,
+      books: (listBookRows ?? [])
+        .filter((row) => row.list_id === list.id)
+        .map((row) => booksByUserBookId.get(row.user_book_id))
+        .filter((b): b is NonNullable<typeof b> => b !== undefined),
+    }))
+    .filter((list) => list.books.length > 0);
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -137,6 +230,66 @@ export default async function PublicProfilePage({
                 <p className="mt-1 font-mono text-xs text-muted-foreground">
                   @{profile.username}
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                          disabled={followers.length === 0}
+                        />
+                      }
+                    >
+                      <span className="font-medium text-foreground">
+                        {followers.length}
+                      </span>{" "}
+                      follower
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle>Follower</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-1">
+                        {followers.map((f) => (
+                          <ProfileRow key={f.username} profile={f} />
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                          disabled={following.length === 0}
+                        />
+                      }
+                    >
+                      <span className="font-medium text-foreground">
+                        {following.length}
+                      </span>{" "}
+                      seguiti
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle>Seguiti</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-1">
+                        {following.map((f) => (
+                          <ProfileRow key={f.username} profile={f} />
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="mt-3">
+                  <FollowButton
+                    profileUserId={profile.id}
+                    profileUsername={profile.username}
+                  />
+                </div>
               </div>
             </div>
 
@@ -195,6 +348,26 @@ export default async function PublicProfilePage({
           </div>
         ) : (
           <PublicLibraryView books={books} />
+        )}
+
+        {listsWithBooks.length > 0 && (
+          <div className="mt-10 flex flex-col gap-10 border-t border-border/60 pt-8 sm:mt-12">
+            {listsWithBooks.map((list) => (
+              <div key={list.id}>
+                <h2 className="mb-4 flex items-center gap-3">
+                  <span className="font-serif text-xl font-medium text-primary">
+                    {list.name}
+                  </span>
+                  <span className="h-[1px] flex-1 bg-gradient-to-r from-border via-border/50 to-transparent" />
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {list.books.map((book) => (
+                    <PublicBookCard key={book.userBookId} {...book} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>

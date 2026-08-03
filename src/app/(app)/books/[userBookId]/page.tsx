@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddToListDialog } from "@/components/add-to-list-dialog";
 import { BookCover } from "@/components/book-cover";
 import { RatingInput } from "@/components/rating-input";
 import { RemoveBookButton } from "@/components/remove-book-button";
@@ -17,6 +18,10 @@ export default async function BookDetailPage({
   const { userBookId } = await params;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: userBook } = await supabase
     .from("user_books")
     .select(
@@ -28,6 +33,25 @@ export default async function BookDetailPage({
   if (!userBook || !userBook.books) notFound();
 
   const book = userBook.books;
+
+  const { data: lists } = user
+    ? await supabase
+        .from("lists")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
+
+  const listIds = (lists ?? []).map((list) => list.id);
+  const { data: memberships } =
+    listIds.length > 0
+      ? await supabase
+          .from("list_books")
+          .select("list_id")
+          .eq("user_book_id", userBookId)
+          .in("list_id", listIds)
+      : { data: [] };
+  const memberListIds = (memberships ?? []).map((m) => m.list_id);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -109,7 +133,12 @@ export default async function BookDetailPage({
             </a>
           )}
 
-          <div className="pt-2">
+          <div className="flex flex-wrap gap-2 pt-2">
+            <AddToListDialog
+              userBookId={userBook.id}
+              lists={lists ?? []}
+              memberListIds={memberListIds}
+            />
             <RemoveBookButton userBookId={userBook.id} title={book.title} />
           </div>
         </div>

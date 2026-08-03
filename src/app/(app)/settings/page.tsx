@@ -36,6 +36,20 @@ export default async function SettingsPage() {
       />
 
       <div className="mt-8 border-t border-border/60 pt-6">
+        <h2 className="font-serif text-lg">Le tue liste</h2>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">
+          Raggruppa i libri del tuo catalogo in liste a tema, visibili sul tuo
+          profilo pubblico.
+        </p>
+        <Link
+          href="/lists"
+          className="text-sm font-medium text-primary underline underline-offset-2"
+        >
+          Gestisci le tue liste
+        </Link>
+      </div>
+
+      <div className="mt-8 border-t border-border/60 pt-6">
         <h2 className="font-serif text-lg">Importa libreria</h2>
         <p className="mt-1 mb-3 text-sm text-muted-foreground">
           Hai un export di Bookie? Puoi importarlo nella tua libreria Spine.
