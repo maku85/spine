@@ -94,6 +94,67 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];
       };
+      follows: {
+        Row: {
+          follower_id: string;
+          followed_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          followed_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["follows"]["Insert"]>;
+        Relationships: [];
+      };
+      lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["lists"]["Insert"]>;
+        Relationships: [];
+      };
+      list_books: {
+        Row: {
+          list_id: string;
+          user_book_id: string;
+          added_at: string;
+        };
+        Insert: {
+          list_id: string;
+          user_book_id: string;
+          added_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["list_books"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "list_books_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "lists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "list_books_user_book_id_fkey";
+            columns: ["user_book_id"];
+            isOneToOne: false;
+            referencedRelation: "user_books";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
