@@ -34,6 +34,19 @@ export default async function SettingsPage() {
         displayName={profile.display_name}
         avatarUrl={profile.avatar_url}
       />
+
+      <div className="mt-8 border-t border-border/60 pt-6">
+        <h2 className="font-serif text-lg">Importa libreria</h2>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">
+          Hai un export di Bookie? Puoi importarlo nella tua libreria Spine.
+        </p>
+        <Link
+          href="/import"
+          className="text-sm font-medium text-primary underline underline-offset-2"
+        >
+          Importa da Bookie
+        </Link>
+      </div>
     </div>
   );
 }

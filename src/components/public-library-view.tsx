@@ -57,6 +57,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("added_desc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [genreFilter, setGenreFilter] = useState<string>("all");
 
   const counts = useMemo(() => {
     return {
@@ -67,6 +68,29 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
       wishlist: books.filter((b) => b.status === "wishlist").length,
     };
   }, [books]);
+
+  const selectStatus = (key: string) => {
+    setStatusFilter(key);
+    setGenreFilter("all");
+  };
+
+  const genresInStatus = useMemo(() => {
+    const inStatus =
+      statusFilter === "all"
+        ? books
+        : books.filter((b) => b.status === statusFilter);
+
+    const genreCounts = new Map<string, number>();
+    for (const book of inStatus) {
+      for (const subject of book.subjects) {
+        genreCounts.set(subject, (genreCounts.get(subject) ?? 0) + 1);
+      }
+    }
+
+    return [...genreCounts.entries()].sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "it"),
+    );
+  }, [books, statusFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -79,7 +103,10 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
       const matchesStatus =
         statusFilter === "all" ? true : book.status === statusFilter;
 
-      return matchesQuery && matchesStatus;
+      const matchesGenre =
+        genreFilter === "all" ? true : book.subjects.includes(genreFilter);
+
+      return matchesQuery && matchesStatus && matchesGenre;
     });
 
     if (sort === "added_desc") return matching;
@@ -91,7 +118,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
           return b.title.localeCompare(a.title, "it");
         case "author_asc":
           return primaryAuthor(a.authors).localeCompare(
-            primaryAuthor(a.authors),
+            primaryAuthor(b.authors),
             "it",
           );
         default:
@@ -101,7 +128,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
           );
       }
     });
-  }, [books, query, sort, statusFilter]);
+  }, [books, query, sort, statusFilter, genreFilter]);
 
   const sections = useMemo(
     () => groupIntoSections(filtered, sort),
@@ -125,7 +152,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
               <button
                 key={option.key}
                 type="button"
-                onClick={() => setStatusFilter(option.key)}
+                onClick={() => selectStatus(option.key)}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer select-none",
                   isActive
@@ -151,6 +178,45 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
         </div>
       </div>
 
+      {/* Genre breakdown for the active status tab — click a genre to
+          narrow the grid further, "Tutti i generi" clears it. */}
+      {genresInStatus.length > 0 && (
+        <div className="mb-6 -mx-1 flex flex-wrap items-center gap-1.5 px-1">
+          <span className="mr-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            Generi
+          </span>
+          <button
+            type="button"
+            onClick={() => setGenreFilter("all")}
+            className={cn(
+              "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer select-none",
+              genreFilter === "all"
+                ? "border-brass/50 bg-brass/10 text-foreground"
+                : "border-border/50 bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
+            )}
+          >
+            Tutti
+          </button>
+          {genresInStatus.map(([genre, count]) => (
+            <button
+              key={genre}
+              type="button"
+              onClick={() =>
+                setGenreFilter((current) => (current === genre ? "all" : genre))
+              }
+              className={cn(
+                "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer select-none",
+                genreFilter === genre
+                  ? "border-brass/50 bg-brass/10 text-foreground"
+                  : "border-border/50 bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              {genre} <span className="text-muted-foreground/70">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Search and Controls Bar */}
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-card/60 p-3 rounded-xl border border-border/60 shadow-xs sm:p-3.5">
         <div className="relative w-full sm:max-w-xs">
@@ -166,7 +232,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
           {/* Status Filter Dropdown (Mobile Friendly) */}
           <Select
             value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value ?? "all")}
+            onValueChange={(value) => selectStatus(value ?? "all")}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:hidden">
               <SelectValue placeholder="Stato lettura" />
@@ -215,8 +281,8 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
             Nessun libro corrisponde ai filtri
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prova a selezionare un altro stato di lettura o a cancellare la
-            ricerca.
+            Prova a selezionare un altro stato di lettura, un altro genere, o a
+            cancellare la ricerca.
           </p>
         </div>
       ) : (

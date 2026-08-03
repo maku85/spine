@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 export function IsbnScannerDialog({
@@ -20,6 +21,9 @@ export function IsbnScannerDialog({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
 
   useEffect(() => {
     if (!open || !videoRef.current) return;
@@ -36,7 +40,7 @@ export function IsbnScannerDialog({
         if (stopped || !result) return;
         stopped = true;
         controls?.stop();
-        onDetected(result.getText());
+        onDetectedRef.current(result.getText());
         setOpen(false);
       })
       .then((c) => {
@@ -49,39 +53,43 @@ export function IsbnScannerDialog({
       stopped = true;
       controls?.stop();
     };
-  }, [open, onDetected]);
+  }, [open]);
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        aria-label="Scansiona codice a barre"
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setError(null);
+      }}
+    >
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Scansiona codice a barre"
+          />
+        }
       >
         <ScanBarcode className="size-4" />
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Inquadra il codice a barre (ISBN)</DialogTitle>
-          </DialogHeader>
-          {error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : (
-            <video
-              ref={videoRef}
-              className="aspect-square w-full rounded-lg bg-black object-cover"
-              muted
-              playsInline
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Inquadra il codice a barre (ISBN)</DialogTitle>
+        </DialogHeader>
+        {error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <video
+            ref={videoRef}
+            className="aspect-square w-full rounded-lg bg-black object-cover"
+            muted
+            playsInline
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
