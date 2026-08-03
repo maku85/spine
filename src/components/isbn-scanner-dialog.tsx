@@ -20,13 +20,15 @@ export function IsbnScannerDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+    null,
+  );
 
   const onDetectedRef = useRef(onDetected);
   onDetectedRef.current = onDetected;
 
   useEffect(() => {
-    if (!open || !videoRef.current) return;
+    if (!open || !videoElement) return;
 
     const hints = new Map();
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]);
@@ -36,7 +38,7 @@ export function IsbnScannerDialog({
     let controls: { stop: () => void } | undefined;
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current, (result) => {
+      .decodeFromVideoDevice(undefined, videoElement, (result) => {
         if (stopped || !result) return;
         stopped = true;
         controls?.stop();
@@ -53,7 +55,7 @@ export function IsbnScannerDialog({
       stopped = true;
       controls?.stop();
     };
-  }, [open]);
+  }, [open, videoElement]);
 
   return (
     <Dialog
@@ -83,7 +85,7 @@ export function IsbnScannerDialog({
           <p className="text-sm text-destructive">{error}</p>
         ) : (
           <video
-            ref={videoRef}
+            ref={setVideoElement}
             className="aspect-square w-full rounded-lg bg-black object-cover"
             muted
             playsInline
