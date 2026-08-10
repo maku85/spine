@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { signupsEnabled } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 
 async function getBaseUrl() {
@@ -50,6 +51,10 @@ export async function signUp(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  if (!signupsEnabled()) {
+    return { error: "Le registrazioni sono temporaneamente sospese." };
+  }
+
   const validated = CredentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),

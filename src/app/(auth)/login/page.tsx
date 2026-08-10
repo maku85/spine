@@ -7,6 +7,7 @@ import { GoogleSignInButton } from "@/components/google-signin-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signupsEnabled } from "@/lib/feature-flags";
 import { signIn } from "../actions";
 
 export default function LoginPage() {
@@ -80,15 +81,17 @@ export default function LoginPage() {
 
           <GoogleSignInButton />
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
-            Non hai ancora un account?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-foreground underline underline-offset-4 hover:text-primary transition-colors"
-            >
-              Registrati ora
-            </Link>
-          </p>
+          {signupsEnabled() && (
+            <p className="mt-8 text-center text-sm text-muted-foreground">
+              Non hai ancora un account?{" "}
+              <Link
+                href="/signup"
+                className="font-medium text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+              >
+                Registrati ora
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
