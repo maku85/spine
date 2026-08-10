@@ -1,103 +1,138 @@
-# spine
+# Spine
 
-App per catalogare i propri libri, costruita con Next.js (App Router) e Supabase.
+A personal book cataloging app built with Next.js (App Router) and Supabase.
 
-Ogni utente ha un proprio account e il proprio catalogo personale (stato di lettura, valutazione). L'aggiunta di un libro cerca titolo/autore/copertina automaticamente su [Open Library](https://openlibrary.org/developers/api).
+Each user has their own account and personal catalog: reading status (wishlist, to read, reading, read), star rating, genres, and a generated (non-photographic) cover for every book. Adding a book searches title/author automatically against a local MongoDB cache first, falling back to [Open Library](https://openlibrary.org/developers/api), plus ISBN lookup and camera barcode scanning. A "Reading suggestions" page surfaces NYT bestseller lists, Google Books popularity charts, and hand-curated "literary importance" picks — all pre-imported into MongoDB rather than called live on every page load. Every catalog also has a public, read-only profile page (`/u/username`) that anyone can view without an account, while adding/editing books stays restricted to their owner.
 
-## Sviluppo locale
+## Local development
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Richiede un file `.env.local` con:
+Requires a `.env.local` file with:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
-# Opzionale: arricchisce trama/generi con Google Books. Senza questa chiave
-# l'app funziona comunque usando solo Open Library.
+# Optional: enriches plot/genres via Google Books. Without this key the
+# app still works, falling back to Open Library only.
 GOOGLE_BOOKS_API_KEY=...
 
-# Richiesta per il link alla recensione del NYT nella pagina di dettaglio di
-# un libro (chiave gratuita su developer.nytimes.com), e per popolare le
-# classifiche bestseller (vedi scripts/import-charts.mts più sotto — la
-# pagina Suggerimenti in sé non la usa a runtime, legge da Mongo).
+# Needed for the NYT review link on a book's detail page (free key from
+# developer.nytimes.com), and for populating the bestseller charts (see
+# scripts/import-charts.mts below — the Suggestions page itself doesn't
+# use it at runtime, it reads from Mongo).
 NYT_BOOKS_API_KEY=...
 
-# Richiesta per il bottone "Scopri libri simili" nella pagina di dettaglio
-# di un libro (tastedive.com/read/api, gratuita). Senza questa chiave il
-# bottone semplicemente non troverà risultati.
+# Needed for the "Discover similar books" button on a book's detail page
+# (tastedive.com/read/api, free). Without this key the button simply
+# won't find any results.
 TASTEDIVE_API_KEY=...
 
-# Richiesta per la ricerca libri (cache Mongo prima di Open Library, vedi
-# sotto) e per la pagina "Suggerimenti di lettura" (legge le classifiche da
-# Mongo invece di chiamare NYT dal vivo). Senza questa chiave la ricerca usa
-# solo Open Library e la pagina suggerimenti resta vuota con un messaggio
-# che lo spiega.
+# Needed for book search (Mongo cache in front of Open Library, see below)
+# and for the "Reading suggestions" page (reads charts from Mongo instead
+# of calling NYT live). Without this key, search falls back to Open
+# Library only and the suggestions page stays empty with a message
+# explaining why.
 MONGODB_URI=...
 ```
 
-Lo schema del database vive in `supabase/migrations/`.
+The database schema lives in `supabase/migrations/`.
 
-## Import libri in MongoDB (scripts/import-google-books.mts)
+## Importing books into MongoDB (scripts/import-google-books.mts)
 
-Script separato dall'app che popola una collection MongoDB Atlas con libri
-in italiano recuperati dalle API di Google Books (ISBN, titolo, autori,
-anno, editore, descrizione, categorie). Scarta i volumi senza ISBN.
-Richiede in `.env.local`:
+A standalone script (separate from the app) that populates a MongoDB Atlas
+collection with Italian-language books fetched from the Google Books API
+(ISBN, title, authors, year, publisher, description, categories). Skips
+volumes without an ISBN. Requires in `.env.local`:
 
 ```
 MONGODB_URI=...
 ```
 
-Uso:
+Usage:
 
 ```bash
-pnpm import-books                                       # query di default
+pnpm import-books                                       # default query
 pnpm import-books "subject:Fantascienza" "inauthor:Italo Calvino"
 pnpm import-books --max=400 "subject:Storia"
-pnpm import-books --dry-run "subject:Giallo"            # stampa senza scrivere su Mongo
-pnpm import-books --order-by=newest "subject:Storia"    # relevance (default) o newest
+pnpm import-books --dry-run "subject:Giallo"            # print without writing to Mongo
+pnpm import-books --order-by=newest "subject:Storia"    # relevance (default) or newest
 ```
 
-Salva su db `books_catalog`, collection `books` (nomi configurabili con
-`MONGODB_DB` / `MONGODB_COLLECTION`), con upsert sull'id volume di Google
-Books così run ripetuti sono idempotenti. Da qualche run in poi salva anche
-`averageRating`/`ratingsCount`, usati dalla classifica di popolarità qui
-sotto — libri importati prima non li hanno.
+Writes to the `books_catalog` db, `books` collection (names configurable
+via `MONGODB_DB` / `MONGODB_COLLECTION`), upserting on the Google Books
+volume id so repeated runs are idempotent. From a certain run onward it
+also stores `averageRating`/`ratingsCount`, used by the popularity chart
+below — books imported before that don't have them.
 
-## Import classifiche in MongoDB (scripts/import-charts.mts)
+## Search autocomplete index (scripts/create-search-index.mts)
 
-Popola una collection separata, `books_catalog.charts`, con classifiche di
-libri da usare per generare suggerimenti di lettura. Tre fonti:
-
-- **`nyt`** — liste bestseller del New York Times per categoria (vendite),
-  richiede `NYT_BOOKS_API_KEY`. Titoli/autori come restituiti da NYT (in
-  inglese, mercato USA).
-- **`google-books`** — popolarità per categoria, calcolata aggregando
-  `ratingsCount`/`averageRating` dei libri già presenti in
-  `books_catalog.books`. Nessuna chiamata esterna: se non trova libri con
-  quei campi (perché importati prima che venissero aggiunti) non genera
-  nulla per quel run.
-- **`curated`** — liste di "importanza letteraria" curate a mano in
-  `scripts/data/curated-importance.mts` (non da una fonte esterna
-  verificata — una selezione soggettiva, punto di partenza da rivedere/
-  estendere), risolte contro Google Books per ISBN e titolo/autore
-  dell'edizione italiana.
-
-Ogni run sovrascrive (upsert) il documento della lista corrispondente: è
-uno snapshot più recente, non uno storico. La pagina "Suggerimenti di
-lettura" dell'app legge da qui (`MONGODB_URI`), non chiama più NYT dal
-vivo — se le classifiche non sono mai state importate, la pagina lo dice
-esplicitamente e suggerisce di lanciare questo script.
+One-off script that creates the Atlas Search index the app's live search
+(`src/lib/mongo-books/search.ts`) uses for title/author autocomplete over
+the catalog imported by `import-google-books.mts`. Re-run it (after
+deleting the existing index) if you change the index definition.
 
 ```bash
-pnpm import-charts                  # tutte e tre le fonti
+node --env-file=.env.local scripts/create-search-index.mts
+```
+
+## Importing charts into MongoDB (scripts/import-charts.mts)
+
+Populates a separate collection, `books_catalog.charts`, with book charts
+used to generate reading suggestions. Three sources:
+
+- **`nyt`** — New York Times bestseller lists by category (sales),
+  requires `NYT_BOOKS_API_KEY`. Titles/authors as returned by NYT (in
+  English, US market).
+- **`google-books`** — popularity by category, computed by aggregating
+  `ratingsCount`/`averageRating` from books already present in
+  `books_catalog.books`. No external calls: if it finds no books with
+  those fields (because they were imported before those fields existed),
+  it generates nothing for that run.
+- **`curated`** — hand-curated "literary importance" lists in
+  `scripts/data/curated-importance.mts` (not from a verified external
+  source — a subjective starting point meant to be reviewed/extended),
+  resolved against Google Books by ISBN and by the Italian edition's
+  title/author.
+
+Each run overwrites (upserts) the corresponding list's document: it's a
+fresh snapshot, not a history. The app's "Reading suggestions" page reads
+from here (`MONGODB_URI`) rather than calling NYT live — if the charts
+have never been imported, the page says so explicitly and suggests
+running this script.
+
+```bash
+pnpm import-charts                  # all three sources
 pnpm import-charts --type=nyt
 pnpm import-charts --type=popularity
 pnpm import-charts --type=curated
-pnpm import-charts --dry-run        # stampa senza scrivere su Mongo
+pnpm import-charts --dry-run        # print without writing to Mongo
+```
+
+## Importing a Bookie export (scripts/import-bookie.mts)
+
+Unlike the scripts above (which populate shared MongoDB collections), this
+one writes directly into a real user's personal catalog in Supabase — a
+one-time migration from the "Bookie" app's CSV export. Requires that
+user's Spine login (email + password, prompted interactively; the password
+is never accepted as a CLI argument, so it doesn't end up in shell
+history).
+
+Each row maps `list_name` to a Spine reading status
+(`currently_reading`→reading, `finished`→read, `want_to_read`→to read,
+`wishlist`→wishlist); `favorite` isn't a status of its own — in Bookie's
+export it always tags a book that also has a real status — so it becomes a
+5-star rating instead of a separate entry. Each book is resolved against
+Open Library by ISBN to fetch a description and genres (falling back to
+just the CSV's title/author if Open Library has no match for that ISBN),
+same as adding a book by hand in the app.
+
+```bash
+pnpm import-bookie --file=export.csv --dry-run              # inspect the mapping, no login, no writes
+pnpm import-bookie --file=export.csv --email=you@example.com
+pnpm import-bookie --file=export.csv --email=you@example.com --limit=5  # test on a handful first
 ```
