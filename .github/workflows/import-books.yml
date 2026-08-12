@@ -1,4 +1,4 @@
-name: Importa libri recenti
+name: Import recent books
 
 on:
   schedule:
@@ -20,7 +20,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Importa novità di narrativa
+      - name: Import new fiction releases
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
