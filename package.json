@@ -10,7 +10,6 @@
     "lint": "biome check",
     "format": "biome format --write",
     "import-books": "node --env-file=.env.local scripts/import-google-books.mts",
-    "import-charts": "node --env-file=.env.local scripts/import-charts.mts",
     "import-bookie": "node --env-file=.env.local scripts/import-bookie.mts",
     "import-ratings": "node --env-file=.env.local scripts/import-open-library-ratings.mts",
     "import-nyt-bestsellers": "node --env-file=.env.local scripts/import-nyt-bestsellers.mts"

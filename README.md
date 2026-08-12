@@ -2,7 +2,7 @@
 
 A personal book cataloging app built with Next.js (App Router) and Supabase.
 
-Each user has their own account and personal catalog: reading status (wishlist, to read, reading, read), star rating, genres, and a generated (non-photographic) cover for every book. Adding a book searches title/author automatically against a local MongoDB cache first, falling back to [Open Library](https://openlibrary.org/developers/api), plus ISBN lookup and camera barcode scanning. A "Reading suggestions" page surfaces NYT bestseller lists, Google Books popularity charts, and hand-curated "literary importance" picks — all pre-imported into MongoDB rather than called live on every page load. Every catalog also has a public, read-only profile page (`/u/username`) that anyone can view without an account, while adding/editing books stays restricted to their owner.
+Each user has their own account and personal catalog: reading status (wishlist, to read, reading, read), star rating, genres, and a generated (non-photographic) cover for every book. Adding a book searches title/author automatically against a local MongoDB cache first, falling back to [Open Library](https://openlibrary.org/developers/api), plus ISBN lookup and camera barcode scanning. A "Reading suggestions" page surfaces NYT bestseller lists and the highest-rated books (by Open Library rating), both read directly from the same MongoDB catalog rather than called live on every page load. Every catalog also has a public, read-only profile page (`/u/username`) that anyone can view without an account, while adding/editing books stays restricted to their owner.
 
 ## Local development
 
@@ -21,8 +21,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 # app still works, falling back to Open Library only.
 GOOGLE_BOOKS_API_KEY=...
 
-# Needed for populating the bestseller charts (free key from
-# developer.nytimes.com; see scripts/import-charts.mts below — the
+# Needed for pulling NYT bestseller data into the catalog (free key from
+# developer.nytimes.com; see scripts/import-nyt-bestsellers.mts below — the
 # Suggestions page itself doesn't use it at runtime, it reads from Mongo).
 NYT_BOOKS_API_KEY=...
 
@@ -32,10 +32,10 @@ NYT_BOOKS_API_KEY=...
 TASTEDIVE_API_KEY=...
 
 # Needed for book search (Mongo cache in front of Open Library, see below)
-# and for the "Reading suggestions" page (reads charts from Mongo instead
-# of calling NYT live). Without this key, search falls back to Open
-# Library only and the suggestions page stays empty with a message
-# explaining why.
+# and for the "Reading suggestions" page (reads NYT rank and Open Library
+# ratings straight from the books collection instead of calling those
+# APIs live). Without this key, search falls back to Open Library only
+# and the suggestions page stays empty with a message explaining why.
 MONGODB_URI=...
 ```
 
@@ -64,9 +64,11 @@ pnpm import-books --order-by=newest "subject:Storia"    # relevance (default) or
 
 Writes to the `books_catalog` db, `books` collection (names configurable
 via `MONGODB_DB` / `MONGODB_COLLECTION`), upserting on the Google Books
-volume id so repeated runs are idempotent. From a certain run onward it
-also stores `averageRating`/`ratingsCount`, used by the popularity chart
-below — books imported before that don't have them.
+volume id so repeated runs are idempotent. It also stores Google's own
+`averageRating`/`ratingsCount`, but those turned out unreliable for most
+books (too few votes, even for famous titles) and aren't surfaced
+anywhere — see `scripts/import-open-library-ratings.mts` below for the
+rating source the app actually uses.
 
 ## Search autocomplete index (scripts/create-search-index.mts)
 
@@ -77,39 +79,6 @@ deleting the existing index) if you change the index definition.
 
 ```bash
 node --env-file=.env.local scripts/create-search-index.mts
-```
-
-## Importing charts into MongoDB (scripts/import-charts.mts)
-
-Populates a separate collection, `books_catalog.charts`, with book charts
-used to generate reading suggestions. Three sources:
-
-- **`nyt`** — New York Times bestseller lists by category (sales),
-  requires `NYT_BOOKS_API_KEY`. Titles/authors as returned by NYT (in
-  English, US market).
-- **`google-books`** — popularity by category, computed by aggregating
-  `ratingsCount`/`averageRating` from books already present in
-  `books_catalog.books`. No external calls: if it finds no books with
-  those fields (because they were imported before those fields existed),
-  it generates nothing for that run.
-- **`curated`** — hand-curated "literary importance" lists in
-  `scripts/data/curated-importance.mts` (not from a verified external
-  source — a subjective starting point meant to be reviewed/extended),
-  resolved against Google Books by ISBN and by the Italian edition's
-  title/author.
-
-Each run overwrites (upserts) the corresponding list's document: it's a
-fresh snapshot, not a history. The app's "Reading suggestions" page reads
-from here (`MONGODB_URI`) rather than calling NYT live — if the charts
-have never been imported, the page says so explicitly and suggests
-running this script.
-
-```bash
-pnpm import-charts                  # all three sources
-pnpm import-charts --type=nyt
-pnpm import-charts --type=popularity
-pnpm import-charts --type=curated
-pnpm import-charts --dry-run        # print without writing to Mongo
 ```
 
 ## Importing a Bookie export (scripts/import-bookie.mts)
@@ -163,14 +132,15 @@ Scheduled daily via `.github/workflows/import-ratings.yml`.
 
 ## Importing NYT bestseller data into the catalog (scripts/import-nyt-bestsellers.mts)
 
-Enriches the same Mongo `books` collection (not the separate `charts`
-collection above) with New York Times bestseller signal — rank, rank last
-week, and weeks on the list — for the lists in
-`scripts/data/nyt-lists.mts` (shared with `import-charts.mts`). For each
-book: if it's already in the catalog (matched by ISBN, a known alternate
-ISBN, or normalized title+author) its NYT fields are updated in place;
-otherwise it's resolved against Google Books by ISBN and inserted as a new
-document.
+Enriches the Mongo `books` collection with New York Times bestseller
+signal — rank, rank last week, and weeks on the list — directly on each
+book document (`nytRank`/`nytRankLastWeek`/`nytWeeksOnList`/`nytListName`),
+for the lists in `scripts/data/nyt-lists.mts`. For each book: if it's
+already in the catalog (matched by ISBN, a known alternate ISBN, or
+normalized title+author) its NYT fields are updated in place; otherwise
+it's resolved against Google Books by ISBN and inserted as a new document.
+This is what the "Reading suggestions" page's NYT section, and the NYT
+badge on search results, read from.
 
 NYT bestsellers are almost entirely American, English-language books,
 while the rest of the catalog is Italian-only (see the import script
@@ -179,11 +149,12 @@ English rather than skipped, tagged `source: "nyt"` and `language` so it
 can be told apart later if needed.
 
 Respects NYT's free-tier rate limit (5 requests/minute) with a 13s pause
-between lists, same as `import-charts.mts`.
+between lists.
 
 ```bash
 pnpm import-nyt-bestsellers
 pnpm import-nyt-bestsellers --dry-run   # print without writing to Mongo
 ```
 
-Scheduled daily via `.github/workflows/import-nyt-bestsellers.yml`.
+Scheduled weekly (Mondays) via `.github/workflows/import-nyt-bestsellers.yml`
+— NYT lists themselves only refresh once a week.
