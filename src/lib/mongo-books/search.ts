@@ -27,6 +27,7 @@ export type MongoSearchPage = {
 type StoredBook = {
   _id: string;
   isbn: string | null;
+  alternateIsbns?: string[];
   title: string;
   authors: string[];
   year: number | null;
@@ -79,7 +80,7 @@ export async function searchMongoBooks(
     const words = trimmed.split(/\s+/).filter(Boolean);
 
     const searchStage = isbn
-      ? { text: { query: isbn, path: "isbn" } }
+      ? { text: { query: isbn, path: ["isbn", "alternateIsbns"] } }
       : {
           compound: {
             must: words.map((word) => ({

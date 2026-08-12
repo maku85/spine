@@ -63,6 +63,8 @@ type ImportedBook = {
   workKey: string;
 };
 
+type StoredBook = ImportedBook & { alternateIsbns: string[] };
+
 function parseArgs(argv: string[]) {
   const queries: string[] = [];
   let maxPerQuery = 200;
@@ -260,7 +262,7 @@ async function main() {
     if (client) await client.connect();
     const collection = client
       ?.db(DB_NAME)
-      .collection<ImportedBook>(COLLECTION_NAME);
+      .collection<StoredBook>(COLLECTION_NAME);
 
     await collection?.createIndex({ workKey: 1 });
 
@@ -283,7 +285,7 @@ async function main() {
 
         const sameEdition = await collection.findOne({ _id: book._id });
         if (sameEdition) {
-          await collection.replaceOne({ _id: book._id }, book);
+          await collection.updateOne({ _id: book._id }, { $set: book });
           refreshed += 1;
           continue;
         }
@@ -292,17 +294,32 @@ async function main() {
           workKey: book.workKey,
         });
         if (!existingForWork) {
-          await collection.insertOne(book);
+          await collection.insertOne({ ...book, alternateIsbns: [] });
           imported += 1;
           console.log(`  + ${book.title} (${book.year ?? "anno ignoto"})`);
         } else if (isEarlierEdition(book.year, existingForWork.year)) {
+          const carriedIsbns = new Set(
+            [
+              existingForWork.isbn,
+              ...(existingForWork.alternateIsbns ?? []),
+            ].filter((isbn) => isbn && isbn !== book.isbn),
+          );
           await collection.deleteOne({ _id: existingForWork._id });
-          await collection.insertOne(book);
+          await collection.insertOne({
+            ...book,
+            alternateIsbns: [...carriedIsbns],
+          });
           imported += 1;
           console.log(
             `  ~ ${book.title}: ${existingForWork.year ?? "?"} → ${book.year ?? "?"} (edizione più vecchia trovata)`,
           );
         } else {
+          if (book.isbn !== existingForWork.isbn) {
+            await collection.updateOne(
+              { _id: existingForWork._id },
+              { $addToSet: { alternateIsbns: book.isbn } },
+            );
+          }
           skippedEditions += 1;
         }
       }
