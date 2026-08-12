@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToListDialog } from "@/components/add-to-list-dialog";
@@ -25,7 +25,7 @@ export default async function BookDetailPage({
   const { data: userBook } = await supabase
     .from("user_books")
     .select(
-      "id, status, rating, books(title, authors, description, subjects, first_publish_year, nyt_review_url, nyt_review_summary)",
+      "id, status, rating, books(title, authors, description, subjects, first_publish_year)",
     )
     .eq("id", userBookId)
     .single();
@@ -110,27 +110,6 @@ export default async function BookDetailPage({
                 {book.description}
               </p>
             </div>
-          )}
-
-          {book.nyt_review_url && (
-            <a
-              href={book.nyt_review_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex flex-col gap-2 rounded-xl border border-brass/30 bg-brass/5 p-5 transition-all hover:bg-brass/10 hover:border-brass/50"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] tracking-widest text-brass uppercase font-semibold">
-                  The New York Times Review
-                </span>
-                <ExternalLink className="size-3.5 text-brass group-hover:translate-x-0.5 transition-transform" />
-              </div>
-              {book.nyt_review_summary && (
-                <p className="font-serif text-sm text-foreground/90 italic leading-relaxed">
-                  "{book.nyt_review_summary}"
-                </p>
-              )}
-            </a>
           )}
 
           <div className="flex flex-wrap gap-2 pt-2">

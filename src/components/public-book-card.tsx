@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,8 +28,6 @@ export function PublicBookCard({
   description,
   subjects,
   firstPublishYear,
-  nytReviewUrl,
-  nytReviewSummary,
 }: {
   title: string;
   authors: string[];
@@ -38,8 +36,6 @@ export function PublicBookCard({
   description: string | null;
   subjects: string[];
   firstPublishYear: number | null;
-  nytReviewUrl: string | null;
-  nytReviewSummary: string | null;
 }) {
   const authorLabel = authors.join(", ") || "Autore sconosciuto";
 
@@ -153,28 +149,6 @@ export function PublicBookCard({
               {description}
             </div>
           </div>
-        )}
-
-        {nytReviewUrl && (
-          <a
-            href={nytReviewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col gap-1.5 rounded-xl border border-brass/30 bg-brass/5 p-4 transition-colors hover:bg-brass/10"
-          >
-            <span className="font-mono text-[10px] tracking-widest text-brass uppercase font-semibold">
-              The New York Times Review
-            </span>
-            {nytReviewSummary && (
-              <p className="font-serif text-xs text-foreground/90 italic">
-                "{nytReviewSummary}"
-              </p>
-            )}
-            <span className="flex items-center gap-1 text-xs font-medium text-primary mt-1">
-              Leggi la recensione completa
-              <ExternalLink className="size-3" />
-            </span>
-          </a>
         )}
       </DialogContent>
     </Dialog>

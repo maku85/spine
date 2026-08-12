@@ -37,8 +37,6 @@ export type PublicLibraryBook = {
   description: string | null;
   subjects: string[];
   firstPublishYear: number | null;
-  nytReviewUrl: string | null;
-  nytReviewSummary: string | null;
 };
 
 const STATUS_FILTER_OPTIONS: {

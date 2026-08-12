@@ -64,7 +64,7 @@ export default async function PublicProfilePage({
   const { data: userBooks } = await supabase
     .from("user_books")
     .select(
-      "id, status, rating, books(title, authors, description, subjects, first_publish_year, nyt_review_url, nyt_review_summary)",
+      "id, status, rating, books(title, authors, description, subjects, first_publish_year)",
     )
     .eq("user_id", profile.id)
     .order("added_at", { ascending: false });
@@ -86,8 +86,6 @@ export default async function PublicProfilePage({
       description: userBook.books.description,
       subjects: userBook.books.subjects,
       firstPublishYear: userBook.books.first_publish_year,
-      nytReviewUrl: userBook.books.nyt_review_url,
-      nytReviewSummary: userBook.books.nyt_review_summary,
     }));
   const name = profile.display_name || profile.username;
 

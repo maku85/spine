@@ -8,7 +8,6 @@ import { curateGenres, mergeGenres } from "@/lib/genres";
 import { fetchGoogleBooksEnrichment } from "@/lib/google-books/search";
 import { isItalian } from "@/lib/language";
 import type { MongoBookResult } from "@/lib/mongo-books/search";
-import { fetchNytReview } from "@/lib/nyt-books/search";
 import { fetchWorkDetails } from "@/lib/open-library/search";
 import type { OLSearchResult } from "@/lib/open-library/types";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
@@ -50,14 +49,9 @@ export async function addBookToCatalog(result: OLSearchResult) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const [openLibrary, googleBooks, nytReview] = await Promise.all([
+  const [openLibrary, googleBooks] = await Promise.all([
     fetchWorkDetails(result.workKey),
     fetchGoogleBooksEnrichment({
-      isbn: result.isbn,
-      title: result.title,
-      authors: result.authors,
-    }),
-    fetchNytReview({
       isbn: result.isbn,
       title: result.title,
       authors: result.authors,
@@ -81,8 +75,6 @@ export async function addBookToCatalog(result: OLSearchResult) {
       p_description: description,
       p_subjects: subjects,
       p_first_publish_year: result.firstPublishYear,
-      p_nyt_review_url: nytReview?.url ?? null,
-      p_nyt_review_summary: nytReview?.summary ?? null,
     },
   );
 
@@ -107,10 +99,6 @@ export async function addChartBookToCatalog(book: ChartEntry) {
 
   const authors = book.author ? [book.author] : [];
 
-  const nytReview = book.isbn
-    ? await fetchNytReview({ isbn: book.isbn, title: book.title, authors })
-    : null;
-
   const { data: dbBook, error: bookErr } = await supabase.rpc(
     "upsert_book_from_ol",
     {
@@ -122,8 +110,6 @@ export async function addChartBookToCatalog(book: ChartEntry) {
       p_description: book.description,
       p_subjects: [],
       p_first_publish_year: null,
-      p_nyt_review_url: nytReview?.url ?? null,
-      p_nyt_review_summary: nytReview?.summary ?? null,
     },
   );
 
@@ -145,14 +131,6 @@ export async function addMongoBookToCatalog(book: MongoBookResult) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const nytReview = book.isbn
-    ? await fetchNytReview({
-        isbn: book.isbn,
-        title: book.title,
-        authors: book.authors,
-      })
-    : null;
-
   const { data: dbBook, error: bookErr } = await supabase.rpc(
     "upsert_book_from_ol",
     {
@@ -164,8 +142,6 @@ export async function addMongoBookToCatalog(book: MongoBookResult) {
       p_description: book.description,
       p_subjects: curateGenres(book.categories),
       p_first_publish_year: book.year,
-      p_nyt_review_url: nytReview?.url ?? null,
-      p_nyt_review_summary: nytReview?.summary ?? null,
     },
   );
 

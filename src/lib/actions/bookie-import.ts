@@ -40,8 +40,6 @@ export async function importBookieBatch(
           p_description: details.description,
           p_subjects: details.subjects,
           p_first_publish_year: match?.firstPublishYear ?? null,
-          p_nyt_review_url: null,
-          p_nyt_review_summary: null,
         },
       );
 

@@ -21,10 +21,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 # app still works, falling back to Open Library only.
 GOOGLE_BOOKS_API_KEY=...
 
-# Needed for the NYT review link on a book's detail page (free key from
-# developer.nytimes.com), and for populating the bestseller charts (see
-# scripts/import-charts.mts below — the Suggestions page itself doesn't
-# use it at runtime, it reads from Mongo).
+# Needed for populating the bestseller charts (free key from
+# developer.nytimes.com; see scripts/import-charts.mts below — the
+# Suggestions page itself doesn't use it at runtime, it reads from Mongo).
 NYT_BOOKS_API_KEY=...
 
 # Needed for the "Discover similar books" button on a book's detail page

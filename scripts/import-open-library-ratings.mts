@@ -3,8 +3,7 @@ import { MongoClient } from "mongodb";
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
 const REQUEST_DELAY_MS = 500;
-const USER_AGENT =
-  "Spine (personal book catalog)";
+const USER_AGENT = "Spine (personal book catalog)";
 
 type StoredBook = {
   _id: string;

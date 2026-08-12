@@ -17,8 +17,6 @@ export type Database = {
           description: string | null;
           subjects: string[];
           first_publish_year: number | null;
-          nyt_review_url: string | null;
-          nyt_review_summary: string | null;
           created_at: string;
         };
         Insert: {
@@ -31,8 +29,6 @@ export type Database = {
           description?: string | null;
           subjects?: string[];
           first_publish_year?: number | null;
-          nyt_review_url?: string | null;
-          nyt_review_summary?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["books"]["Insert"]>;
@@ -168,8 +164,6 @@ export type Database = {
           p_description: string | null;
           p_subjects: string[];
           p_first_publish_year: number | null;
-          p_nyt_review_url: string | null;
-          p_nyt_review_summary: string | null;
         };
         Returns: Database["public"]["Tables"]["books"]["Row"];
       };
