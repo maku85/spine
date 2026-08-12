@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, TrendingUp } from "lucide-react";
 import { useState, useTransition } from "react";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,9 @@ export function SearchResultCard({
       : null,
   );
   const [isLoadingDetails, startLoadDetails] = useTransition();
+
+  const nytInfo =
+    item.source === "mongo" && item.book.nytRank ? item.book : null;
 
   function handleOpenChange(open: boolean) {
     if (open && item.source === "openlibrary" && !details) {
@@ -78,6 +81,12 @@ export function SearchResultCard({
                 {item.authors.join(", ") || "Autore sconosciuto"}
                 {item.year && ` · ${item.year}`}
               </p>
+              {nytInfo && (
+                <p className="mt-1 flex items-center gap-1 text-xs font-medium text-brass">
+                  <TrendingUp className="size-3" />
+                  NYT #{nytInfo.nytRank}
+                </p>
+              )}
             </div>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
@@ -107,6 +116,18 @@ export function SearchResultCard({
                   <p className="font-mono text-xs text-muted-foreground truncate">
                     Editore: {item.book.publisher}
                   </p>
+                )}
+                {nytInfo && (
+                  <Badge
+                    variant="outline"
+                    className="w-fit gap-1 border-brass/40 bg-brass/10 font-mono text-[10px] tracking-wide text-brass uppercase"
+                  >
+                    <TrendingUp className="size-3" />
+                    NYT {nytInfo.nytListName} #{nytInfo.nytRank}
+                    {nytInfo.nytWeeksOnList
+                      ? ` · ${nytInfo.nytWeeksOnList} settimane`
+                      : ""}
+                  </Badge>
                 )}
                 {details && details.subjects.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">

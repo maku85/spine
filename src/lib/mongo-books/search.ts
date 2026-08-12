@@ -17,6 +17,9 @@ export type MongoBookResult = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  nytRank: number | null;
+  nytWeeksOnList: number | null;
+  nytListName: string | null;
 };
 
 export type MongoSearchPage = {
@@ -34,6 +37,9 @@ type StoredBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  nytRank?: number;
+  nytWeeksOnList?: number;
+  nytListName?: string;
 };
 
 function toResult(doc: StoredBook): MongoBookResult {
@@ -46,14 +52,12 @@ function toResult(doc: StoredBook): MongoBookResult {
     publisher: doc.publisher ?? null,
     description: doc.description ?? null,
     categories: doc.categories ?? [],
+    nytRank: doc.nytRank ?? null,
+    nytWeeksOnList: doc.nytWeeksOnList ?? null,
+    nytListName: doc.nytListName ?? null,
   };
 }
 
-// Primo livello di ricerca, prima di Open Library: interroga il catalogo
-// già importato in bulk da Google Books (import-google-books.mts) via
-// Atlas Search, senza nessuna chiamata esterna. Richiede MONGODB_URI e
-// l'indice "books_autocomplete" (scripts/create-search-index.mts); senza
-// l'uno o l'altro ritorna 0 risultati e il chiamante ricade su Open Library.
 export async function searchMongoBooks(
   query: string,
   page = 1,
@@ -71,12 +75,6 @@ export async function searchMongoBooks(
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
     const isbn = normalizeIsbn(trimmed);
-
-    // Each word must match somewhere (title OR authors) — a plain `should`
-    // across the whole query string would let a single matching word (e.g.
-    // "inesistente" in "Il cavaliere inesistente") return results for a
-    // query that's otherwise nonsense, which defeats the "0 results ⇒ fall
-    // back to Open Library" logic in searchBooks.
     const words = trimmed.split(/\s+/).filter(Boolean);
 
     const searchStage = isbn
@@ -117,9 +115,6 @@ export async function searchMongoBooks(
 
     return { items: docs.map(toResult), totalCount: meta?.count?.total ?? 0 };
   } catch {
-    // Cluster irraggiungibile, indice non ancora pronto, ecc.: degrada a
-    // "nessun risultato" invece di far fallire la ricerca, il chiamante
-    // ricade su Open Library.
     return empty;
   }
 }
