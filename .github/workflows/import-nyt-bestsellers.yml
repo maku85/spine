@@ -1,0 +1,28 @@
+name: Import NYT bestsellers into catalog
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  import-nyt-bestsellers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Import NYT bestsellers
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NYT_BOOKS_API_KEY: ${{ secrets.NYT_BOOKS_API_KEY }}
+          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
+        run: node scripts/import-nyt-bestsellers.mts
