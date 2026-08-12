@@ -1,16 +1,17 @@
 import { Sparkles } from "lucide-react";
 import { SuggestionCard } from "@/components/suggestion-card";
-import { addChartBookToCatalog } from "@/lib/actions/books";
-import { type Chart, fetchCharts } from "@/lib/charts/read";
+import { addMongoBookToCatalog } from "@/lib/actions/books";
+import {
+  fetchNytBestsellerBooks,
+  fetchTopRatedBooks,
+  type SuggestedBook,
+} from "@/lib/suggestions/read";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeTitle } from "@/lib/text";
 
 const BOOKS_PER_CATEGORY = 4;
+const TOP_RATED_LIMIT = 8;
 
-// Ordine di visualizzazione delle liste bestseller NYT — vedi
-// DEFAULT_NYT_LISTS in scripts/import-charts.mts. Liste non previste qui
-// (es. aggiunte in futuro) finiscono in coda, nell'ordine restituito da
-// Mongo.
 const BESTSELLER_ORDER = [
   "Narrativa",
   "Saggistica",
@@ -19,11 +20,6 @@ const BESTSELLER_ORDER = [
   "Fumetti",
   "Narrativa (tascabile)",
 ];
-
-// Le categorie di popolarità con pochissimi libri valutati (es. "Scienza"
-// con un solo titolo) non fanno una sezione interessante.
-const MIN_POPULARITY_ENTRIES = 3;
-const MAX_POPULARITY_SECTIONS = 3;
 
 function EmptyState({ title, message }: { title: string; message: string }) {
   return (
@@ -42,18 +38,32 @@ function EmptyState({ title, message }: { title: string; message: string }) {
 type Section = {
   key: string;
   label: string;
-  books: Chart["entries"];
+  books: SuggestedBook[];
 };
 
-function sortBestsellerCharts(charts: Chart[]): Chart[] {
-  return [...charts].sort((a, b) => {
-    const ai = BESTSELLER_ORDER.indexOf(a.category);
-    const bi = BESTSELLER_ORDER.indexOf(b.category);
-    return (
-      (ai === -1 ? BESTSELLER_ORDER.length : ai) -
-      (bi === -1 ? BESTSELLER_ORDER.length : bi)
-    );
-  });
+function groupNytByList(books: SuggestedBook[]): Section[] {
+  const byList = new Map<string, SuggestedBook[]>();
+  for (const book of books) {
+    if (!book.nytListName) continue;
+    const list = byList.get(book.nytListName) ?? [];
+    list.push(book);
+    byList.set(book.nytListName, list);
+  }
+
+  return [...byList.entries()]
+    .sort(([a], [b]) => {
+      const ai = BESTSELLER_ORDER.indexOf(a);
+      const bi = BESTSELLER_ORDER.indexOf(b);
+      return (
+        (ai === -1 ? BESTSELLER_ORDER.length : ai) -
+        (bi === -1 ? BESTSELLER_ORDER.length : bi)
+      );
+    })
+    .map(([label, listBooks]) => ({
+      key: `nyt:${label}`,
+      label: `NYT — ${label}`,
+      books: listBooks,
+    }));
 }
 
 export default async function SuggestionsPage() {
@@ -61,27 +71,21 @@ export default async function SuggestionsPage() {
     return (
       <EmptyState
         title="Suggerimenti non configurati"
-        message="Le liste vengono lette da classifiche importate in MongoDB. Aggiungi una MONGODB_URI per attivarle."
+        message="Le liste vengono lette dal catalogo importato in MongoDB. Aggiungi una MONGODB_URI per attivarle."
       />
     );
   }
 
-  const [bestsellerCharts, popularityCharts, importanceCharts] =
-    await Promise.all([
-      fetchCharts("bestseller"),
-      fetchCharts("popularity"),
-      fetchCharts("importance"),
-    ]);
+  const [nytBooks, topRatedBooks] = await Promise.all([
+    fetchNytBestsellerBooks(),
+    fetchTopRatedBooks(),
+  ]);
 
-  if (
-    bestsellerCharts.length === 0 &&
-    popularityCharts.length === 0 &&
-    importanceCharts.length === 0
-  ) {
+  if (nytBooks.length === 0 && topRatedBooks.length === 0) {
     return (
       <EmptyState
-        title="Nessuna classifica disponibile"
-        message="Lancia `pnpm import-charts` per popolare le classifiche da cui vengono generati i suggerimenti."
+        title="Nessun suggerimento disponibile"
+        message="Lancia `pnpm import-nyt-bestsellers` e `pnpm import-ratings` per popolare le classifiche da cui vengono generati i suggerimenti."
       />
     );
   }
@@ -100,40 +104,37 @@ export default async function SuggestionsPage() {
     if (book.isbn) ownedIsbns.add(book.isbn);
   }
 
-  function toSection(chart: Chart): Section {
-    const books = chart.entries
-      .filter(
-        (entry) =>
-          !ownedTitleKeys.has(normalizeTitle(entry.title)) &&
-          !(entry.isbn && ownedIsbns.has(entry.isbn)),
-      )
-      .slice(0, BOOKS_PER_CATEGORY);
-    return { key: chart.id, label: chart.category, books };
+  function excludeOwned(books: SuggestedBook[]): SuggestedBook[] {
+    return books.filter(
+      (book) =>
+        !ownedTitleKeys.has(normalizeTitle(book.title)) &&
+        !(book.isbn && ownedIsbns.has(book.isbn)),
+    );
   }
 
-  const bestsellerSections =
-    sortBestsellerCharts(bestsellerCharts).map(toSection);
+  const bestsellerSections = groupNytByList(excludeOwned(nytBooks)).map(
+    (section) => ({
+      ...section,
+      books: section.books.slice(0, BOOKS_PER_CATEGORY),
+    }),
+  );
 
-  const popularitySections = popularityCharts
-    .filter((chart) => chart.entries.length >= MIN_POPULARITY_ENTRIES)
-    .sort((a, b) => b.entries.length - a.entries.length)
-    .slice(0, MAX_POPULARITY_SECTIONS)
-    .map(toSection);
+  const topRatedSection: Section = {
+    key: "top-rated",
+    label: "Più votati",
+    books: excludeOwned(topRatedBooks).slice(0, TOP_RATED_LIMIT),
+  };
 
-  const importanceSections = importanceCharts.map(toSection);
-
-  const sections = [
-    ...bestsellerSections,
-    ...popularitySections,
-    ...importanceSections,
-  ].filter((section) => section.books.length > 0);
+  const sections = [...bestsellerSections, topRatedSection].filter(
+    (section) => section.books.length > 0,
+  );
 
   return (
     <div className="flex flex-col gap-10">
       <div>
         <h1 className="font-serif text-2xl">Suggerimenti di lettura</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Bestseller, libri più votati e classici, per categoria.
+          Bestseller New York Times e libri più votati, dal tuo catalogo.
         </p>
       </div>
 
@@ -152,13 +153,18 @@ export default async function SuggestionsPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {section.books.map((book) => (
               <SuggestionCard
-                key={book.isbn ?? book.title}
+                key={book.mongoId}
                 title={book.title}
-                author={book.author}
+                author={book.authors.join(", ") || null}
+                yearOrDetail={
+                  book.nytRank
+                    ? `#${book.nytRank}${book.nytWeeksOnList ? ` · ${book.nytWeeksOnList} settimane` : ""}`
+                    : book.year
+                }
                 description={book.description}
-                averageRating={book.averageRating}
-                ratingsCount={book.ratingsCount}
-                onAdd={addChartBookToCatalog.bind(null, book)}
+                averageRating={book.olRating}
+                ratingsCount={book.olRatingsCount}
+                onAdd={addMongoBookToCatalog.bind(null, book)}
               />
             ))}
           </div>
