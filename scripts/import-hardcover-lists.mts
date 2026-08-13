@@ -146,7 +146,7 @@ async function fetchListEntries(
   token: string,
   listId: number,
 ): Promise<ListEntry[]> {
-  const result = await queryHardcover(
+  const result = (await queryHardcover(
     token,
     `query ($listId: Int!, $limit: Int!) {
       lists_by_pk(id: $listId) {
@@ -161,19 +161,25 @@ async function fetchListEntries(
       }
     }`,
     { listId, limit: MAX_BOOKS_PER_LIST },
-  );
-
-  const rows: Array<{
-    position: number | null;
-    book: {
-      title: string;
-      cached_contributors: Array<{ author?: { name?: string } }> | null;
-      default_physical_edition: {
-        isbn_13: string | null;
-        isbn_10: string | null;
-      } | null;
+  )) as {
+    data?: {
+      lists_by_pk?: {
+        list_books?: Array<{
+          position: number | null;
+          book: {
+            title: string;
+            cached_contributors: Array<{ author?: { name?: string } }> | null;
+            default_physical_edition: {
+              isbn_13: string | null;
+              isbn_10: string | null;
+            } | null;
+          };
+        }>;
+      };
     };
-  }> = result?.data?.lists_by_pk?.list_books ?? [];
+  } | null;
+
+  const rows = result?.data?.lists_by_pk?.list_books ?? [];
 
   return rows
     .map((row) => ({
