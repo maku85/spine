@@ -165,8 +165,9 @@ function toImportedBook(volume: GoogleBooksVolume): ImportedBook | null {
 }
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
-const MAX_RETRIES = 4;
-const RETRY_BASE_DELAY_MS = 500;
+const MAX_RETRIES = 6;
+const RETRY_BASE_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 20_000;
 
 async function fetchPage(
   query: string,
@@ -199,7 +200,10 @@ async function fetchPage(
       );
     }
 
-    const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+    const delay = Math.min(
+      RETRY_BASE_DELAY_MS * 2 ** attempt,
+      MAX_RETRY_DELAY_MS,
+    );
     console.warn(
       `  Google Books ha risposto ${res.status} (tentativo ${attempt + 1}/${MAX_RETRIES}), riprovo tra ${delay}ms...`,
     );

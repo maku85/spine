@@ -4,6 +4,7 @@ import { DEFAULT_NYT_LISTS } from "./data/nyt-lists.mts";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
+const LISTS_COLLECTION = process.env.MONGODB_LISTS_COLLECTION ?? "lists";
 
 const NYT_REQUEST_DELAY_MS = 13_000;
 const GOOGLE_REQUEST_DELAY_MS = 250;
@@ -15,6 +16,24 @@ type NytBook = {
   isbn: string | null;
   title: string;
   author: string | null;
+};
+
+type ListEntry = {
+  isbn: string;
+  title: string;
+  author: string | null;
+  position: number | null;
+};
+
+type ListDoc = {
+  _id: string;
+  source: "nyt";
+  externalId: string;
+  name: string;
+  description: string | null;
+  followersCount: number | null;
+  entries: ListEntry[];
+  updatedAt: Date;
 };
 
 type StoredBook = {
@@ -175,12 +194,40 @@ async function main() {
     const collection = client
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
+    const listsCollection = client
+      .db(DB_NAME)
+      .collection<ListDoc>(LISTS_COLLECTION);
 
     for (const [index, { listName, label }] of DEFAULT_NYT_LISTS.entries()) {
       console.log(`NYT: "${listName}" (${label})`);
       const books = await fetchNytList(listName, nytApiKey);
       if (index < DEFAULT_NYT_LISTS.length - 1)
         await sleep(NYT_REQUEST_DELAY_MS);
+
+      const listDoc: ListDoc = {
+        _id: `nyt:${listName}`,
+        source: "nyt",
+        externalId: listName,
+        name: label,
+        description: null,
+        followersCount: null,
+        entries: books
+          .filter((b) => b.isbn)
+          .map((b) => ({
+            isbn: b.isbn as string,
+            title: b.title,
+            author: b.author,
+            position: b.rank,
+          })),
+        updatedAt: new Date(),
+      };
+      if (!dryRun) {
+        await listsCollection.updateOne(
+          { _id: listDoc._id },
+          { $set: listDoc },
+          { upsert: true },
+        );
+      }
 
       for (const nytBook of books) {
         const existing = nytBook.isbn
@@ -260,9 +307,6 @@ async function main() {
         console.log(
           `  + ${doc.title} (${doc.language ?? "lingua ignota"}, nuovo in catalogo)`,
         );
-        // Il ramo "existing" più sopra intercetta già i re-run su questo
-        // stesso ISBN (isbn/alternateIsbns), quindi questo _id non può
-        // esistere ancora: insertOne semplice, niente upsert.
         if (!dryRun) {
           await collection.insertOne(doc);
         }

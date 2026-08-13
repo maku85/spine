@@ -130,6 +130,43 @@ pnpm import-ratings --dry-run      # print without writing to Mongo
 
 Scheduled daily via `.github/workflows/import-ratings.yml`.
 
+## Aligning existing catalog data (scripts/enrich-books.mts)
+
+A manual, run-when-needed script (not scheduled) that improves books
+already sitting in the catalog rather than importing new ones — useful
+since a chunk of the data imported so far has a missing/English/too-short
+description, no known first-publish year, or an ISBN that isn't actually
+the original edition's. For each candidate it resolves the book against
+Open Library (by ISBN, falling back to alternate ISBNs, then to a
+normalized title+author search) and updates:
+
+- **Description** — replaced with Open Library's (Italian paragraphs
+  preferred) if the current one is missing, shorter than 60 characters, or
+  not detected as Italian.
+- **Year** — filled in, or corrected, with Open Library's first-publish
+  year for the work if it's earlier than what's stored (i.e. the stored
+  edition isn't the original one).
+- **ISBN** — promoted to the earliest-dated *Italian* edition found via
+  Open Library's editions list (editions in other languages are ignored
+  entirely, so a book never ends up with a foreign edition's ISBN as its
+  canonical one), when different from what's stored and not already used
+  by another catalog entry. Every other known Italian ISBN for the work
+  ends up in `alternateIsbns` either way, so ISBN search keeps working
+  regardless of which edition a user scans/searches.
+- **Rating** — same `olRating`/`olRatingsCount`/`olWorkKey` fields as
+  `import-open-library-ratings.mts` above (this script's own resolution is
+  reused rather than calling that script separately).
+
+Each processed book gets an `enrichedAt` timestamp so re-runs only pick up
+books that haven't been aligned yet, unless `--force` is passed.
+
+```bash
+pnpm enrich-books --dry-run              # report without writing to Mongo
+pnpm enrich-books --max=50               # default is 100 per run
+pnpm enrich-books --force                # re-check books already aligned
+pnpm enrich-books --isbn=8804668237      # a single book, to sanity-check first
+```
+
 ## Importing NYT bestseller data into the catalog (scripts/import-nyt-bestsellers.mts)
 
 Enriches the Mongo `books` collection with New York Times bestseller
