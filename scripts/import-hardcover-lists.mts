@@ -36,7 +36,8 @@ function parseArgs(argv: string[]) {
   let maxLists = 40;
   let dryRun = false;
   for (const arg of argv) {
-    if (arg.startsWith("--max-lists=")) maxLists = Number(arg.slice("--max-lists=".length));
+    if (arg.startsWith("--max-lists="))
+      maxLists = Number(arg.slice("--max-lists=".length));
     else if (arg === "--dry-run") dryRun = true;
   }
   return { maxLists, dryRun };
@@ -46,7 +47,7 @@ async function queryHardcover(
   token: string,
   query: string,
   variables: Record<string, unknown>,
-): Promise<any> {
+): Promise<unknown> {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(HARDCOVER_ENDPOINT, {
       method: "POST",
@@ -84,7 +85,7 @@ async function findNotableLists(
   token: string,
   maxLists: number,
 ): Promise<NotableList[]> {
-  const result = await queryHardcover(
+  const result = (await queryHardcover(
     token,
     `query ($minFollowers: Int!, $limit: Int!) {
       byFollowers: lists(
@@ -105,7 +106,22 @@ async function findNotableLists(
       }
     }`,
     { minFollowers: MIN_LIST_FOLLOWERS, limit: maxLists },
-  );
+  )) as {
+    data?: {
+      byFollowers?: Array<{
+        id: number;
+        name: string;
+        description: string | null;
+        followers_count: number | null;
+      }>;
+      featured?: Array<{
+        id: number;
+        name: string;
+        description: string | null;
+        followers_count: number | null;
+      }>;
+    };
+  } | null;
 
   const raw = [
     ...(result?.data?.byFollowers ?? []),
@@ -152,7 +168,10 @@ async function fetchListEntries(
     book: {
       title: string;
       cached_contributors: Array<{ author?: { name?: string } }> | null;
-      default_physical_edition: { isbn_13: string | null; isbn_10: string | null } | null;
+      default_physical_edition: {
+        isbn_13: string | null;
+        isbn_10: string | null;
+      } | null;
     };
   }> = result?.data?.lists_by_pk?.list_books ?? [];
 

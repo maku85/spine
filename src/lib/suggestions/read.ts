@@ -57,25 +57,6 @@ function toSuggestedBook(doc: StoredBook): SuggestedBook {
   };
 }
 
-export async function fetchNytBestsellerBooks(): Promise<SuggestedBook[]> {
-  const client = getMongoClient();
-  if (!client) return [];
-
-  try {
-    const collection = client
-      .db(DB_NAME)
-      .collection<StoredBook>(COLLECTION_NAME);
-    const docs = await collection
-      .find({ nytRank: { $exists: true } })
-      .sort({ nytRank: 1 })
-      .toArray();
-
-    return docs.map(toSuggestedBook);
-  } catch {
-    return [];
-  }
-}
-
 export async function fetchTopRatedBooks(): Promise<SuggestedBook[]> {
   const client = getMongoClient();
   if (!client) return [];
