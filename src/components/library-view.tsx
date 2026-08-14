@@ -11,55 +11,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs";
 import {
   groupIntoSections,
   primaryAuthor,
   SORT_LABELS,
   type SortKey,
 } from "@/lib/book-sections";
+import { STATUS_LABELS, STATUS_ORDER } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
+
+type StatusFilter = ReadingStatus | "all";
 
 export type LibraryBook = {
   userBookId: string;
   title: string;
   authors: string[];
   status: ReadingStatus;
-  rating: number | null;
+  liked: boolean | null;
   addedAt: string;
 };
 
-const RATING_LABELS: Record<string, string> = {
-  all: "Qualsiasi valutazione",
-  "5": "5 stelle",
-  "4": "4 stelle",
-  "3": "3 stelle",
-  "2": "2 stelle",
-  "1": "1 stella",
-  none: "Senza valutazione",
+const LIKED_LABELS: Record<string, string> = {
+  all: "Qualsiasi giudizio",
+  liked: "Mi piace",
+  disliked: "Non mi piace",
+  none: "Senza giudizio",
 };
 
 export function LibraryView({ books }: { books: LibraryBook[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("added_desc");
-  const [ratingFilter, setRatingFilter] = useState("all");
+  const [likedFilter, setLikedFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<ReadingStatus, number> = {
+      wishlist: 0,
+      to_read: 0,
+      reading: 0,
+      read: 0,
+    };
+    for (const book of books) counts[book.status] += 1;
+    return counts;
+  }, [books]);
+
+  const tabBooks = useMemo(
+    () =>
+      statusFilter === "all"
+        ? books
+        : books.filter((book) => book.status === statusFilter),
+    [books, statusFilter],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    const matching = books.filter((book) => {
+    const matching = tabBooks.filter((book) => {
       const matchesQuery =
         !q ||
         book.title.toLowerCase().includes(q) ||
         book.authors.some((author) => author.toLowerCase().includes(q));
 
-      const matchesRating =
-        ratingFilter === "all"
+      const matchesLiked =
+        likedFilter === "all"
           ? true
-          : ratingFilter === "none"
-            ? book.rating === null
-            : book.rating === Number(ratingFilter);
+          : likedFilter === "none"
+            ? book.liked === null
+            : likedFilter === "liked"
+              ? book.liked === true
+              : book.liked === false;
 
-      return matchesQuery && matchesRating;
+      return matchesQuery && matchesLiked;
     });
 
     return matching.sort((a, b) => {
@@ -82,7 +105,7 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
           return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
       }
     });
-  }, [books, query, sort, ratingFilter]);
+  }, [tabBooks, query, sort, likedFilter]);
 
   const sections = useMemo(
     () => groupIntoSections(filtered, sort),
@@ -107,15 +130,30 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
             <span className="font-semibold text-foreground">
               {filtered.length}
             </span>
-            {filtered.length !== books.length && (
+            {filtered.length !== tabBooks.length && (
               <span className="text-muted-foreground/70">
                 {" "}
-                / {books.length}
+                / {tabBooks.length}
               </span>
             )}
           </div>
         </div>
       </div>
+
+      <Tabs
+        value={statusFilter}
+        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+        className="mb-6 sm:mb-8"
+      >
+        <TabsList className="w-full flex-wrap sm:w-fit">
+          <TabsTab value="all">Tutti ({books.length})</TabsTab>
+          {STATUS_ORDER.map((status) => (
+            <TabsTab key={status} value={status}>
+              {STATUS_LABELS[status]} ({statusCounts[status]})
+            </TabsTab>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between bg-card/60 p-3 rounded-xl border border-border/60 shadow-xs sm:p-3.5">
         <div className="relative w-full sm:max-w-xs">
@@ -129,14 +167,14 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
         </div>
         <div className="flex gap-2">
           <Select
-            value={ratingFilter}
-            onValueChange={(value) => setRatingFilter(value ?? "all")}
+            value={likedFilter}
+            onValueChange={(value) => setLikedFilter(value ?? "all")}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:w-[170px] sm:flex-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(RATING_LABELS).map(([value, label]) => (
+              {Object.entries(LIKED_LABELS).map(([value, label]) => (
                 <SelectItem key={value} value={value} className="text-xs">
                   {label}
                 </SelectItem>

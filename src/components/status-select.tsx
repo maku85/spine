@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,18 +21,39 @@ export function StatusSelect({
   status: ReadingStatus;
 }) {
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="transition-opacity hover:opacity-70"
+        aria-label="Modifica stato di lettura"
+      >
+        <Badge
+          variant="outline"
+          className="w-fit font-mono text-[9px] tracking-widest uppercase bg-secondary/40 border-border/60"
+        >
+          {STATUS_LABELS[status]}
+        </Badge>
+      </button>
+    );
+  }
 
   return (
     <Select
       disabled={pending}
       value={status}
+      open={editing}
+      onOpenChange={(open) => setEditing(open)}
       onValueChange={(value) =>
         startTransition(() =>
           updateUserBook(userBookId, { status: value as ReadingStatus }),
         )
       }
     >
-      <SelectTrigger className="w-40">
+      <SelectTrigger className="w-40" size="sm">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

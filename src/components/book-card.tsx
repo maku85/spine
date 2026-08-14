@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookCover } from "@/components/book-cover";
-import { RatingInput } from "@/components/rating-input";
+import { LikeButton } from "@/components/like-button";
 import { StatusSelect } from "@/components/status-select";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
@@ -10,14 +10,14 @@ export function BookCard({
   title,
   authors,
   status,
-  rating,
+  liked,
   addedAt,
 }: {
   userBookId: string;
   title: string;
   authors: string[];
   status: ReadingStatus;
-  rating: number | null;
+  liked: boolean | null;
   addedAt: string;
 }) {
   const addedLabel = new Intl.DateTimeFormat("it-IT", {
@@ -43,7 +43,7 @@ export function BookCard({
         <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
           <div className="flex min-w-0 flex-col gap-1">
             <Link href={`/books/${userBookId}`} className="group/link min-w-0">
-              <p className="truncate font-serif text-base font-medium leading-snug text-foreground group-hover/link:text-primary transition-colors">
+              <p className="font-serif text-base font-medium leading-snug text-foreground group-hover/link:text-primary transition-colors">
                 {title}
               </p>
               <p className="truncate text-xs font-normal text-muted-foreground mt-0.5">
@@ -56,7 +56,7 @@ export function BookCard({
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-2.5">
-            <RatingInput userBookId={userBookId} rating={rating} />
+            <LikeButton userBookId={userBookId} liked={liked} />
             <span className="font-mono text-[9px] tracking-widest text-muted-foreground/70 uppercase font-medium">
               {addedLabel}
             </span>

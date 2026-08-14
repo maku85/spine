@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToListDialog } from "@/components/add-to-list-dialog";
 import { BookCover } from "@/components/book-cover";
-import { RatingInput } from "@/components/rating-input";
+import { LikeButton } from "@/components/like-button";
 import { RemoveBookButton } from "@/components/remove-book-button";
 import { SimilarBooksSection } from "@/components/similar-books-section";
 import { StatusSelect } from "@/components/status-select";
@@ -25,7 +25,7 @@ export default async function BookDetailPage({
   const { data: userBook } = await supabase
     .from("user_books")
     .select(
-      "id, status, rating, books(title, authors, description, subjects, first_publish_year)",
+      "id, status, liked, books(title, authors, description, subjects, first_publish_year)",
     )
     .eq("id", userBookId)
     .single();
@@ -86,7 +86,7 @@ export default async function BookDetailPage({
           <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/80 p-4 shadow-xs">
             <StatusSelect userBookId={userBook.id} status={userBook.status} />
             <div className="border-t border-border/40 pt-3">
-              <RatingInput userBookId={userBook.id} rating={userBook.rating} />
+              <LikeButton userBookId={userBook.id} liked={userBook.liked} />
             </div>
           </div>
 

@@ -2,7 +2,7 @@
 
 A personal book cataloging app built with Next.js (App Router) and Supabase.
 
-Each user has their own account and personal catalog: reading status (wishlist, to read, reading, read), star rating, genres, and a generated (non-photographic) cover for every book. Adding a book searches title/author automatically against a local MongoDB cache first, falling back to [Open Library](https://openlibrary.org/developers/api), plus ISBN lookup and camera barcode scanning. A "Reading suggestions" page surfaces NYT bestseller lists and the highest-rated books (by Open Library rating), both read directly from the same MongoDB catalog rather than called live on every page load. Every catalog also has a public, read-only profile page (`/u/username`) that anyone can view without an account, while adding/editing books stays restricted to their owner.
+Each user has their own account and personal catalog: reading status (wishlist, to read, reading, read), a like/dislike judgment, genres, and a generated (non-photographic) cover for every book. Adding a book searches title/author automatically against a local MongoDB cache first, falling back to [Open Library](https://openlibrary.org/developers/api), plus ISBN lookup and camera barcode scanning. A "Reading suggestions" page surfaces NYT bestseller lists and the highest-rated books (by Open Library rating), both read directly from the same MongoDB catalog rather than called live on every page load. Every catalog also has a public, read-only profile page (`/u/username`) that anyone can view without an account, while adding/editing books stays restricted to their owner.
 
 ## Local development
 
@@ -94,7 +94,7 @@ Each row maps `list_name` to a Spine reading status
 (`currently_reading`→reading, `finished`→read, `want_to_read`→to read,
 `wishlist`→wishlist); `favorite` isn't a status of its own — in Bookie's
 export it always tags a book that also has a real status — so it becomes a
-5-star rating instead of a separate entry. Each book is resolved against
+"like" instead of a separate entry. Each book is resolved against
 Open Library by ISBN to fetch a description and genres (falling back to
 just the CSV's title/author if Open Library has no match for that ISBN),
 same as adding a book by hand in the app.

@@ -20,7 +20,7 @@ export type BookieImportBook = {
   title: string;
   authors: string[];
   status: ReadingStatus;
-  rating: number | null;
+  liked: boolean | null;
 };
 
 function parseCsvLine(line: string): string[] {
@@ -107,14 +107,14 @@ export function groupBookieRows(
     const status =
       STATUS_PRIORITY.find((candidate) => candidates.includes(candidate)) ??
       "to_read";
-    const rating = group.listNames.has("favorite") ? 5 : null;
+    const liked = group.listNames.has("favorite") ? true : null;
 
     return {
       isbn: group.isbn,
       title: group.title,
       authors: group.authors,
       status,
-      rating,
+      liked,
     };
   });
 }

@@ -56,7 +56,7 @@ export async function importBookieBatch(
         user_id: user.id,
         book_id: dbBook.id,
         status: book.status,
-        rating: book.rating,
+        liked: book.liked,
       });
 
       if (insertErr) {

@@ -105,7 +105,7 @@ export async function addMongoBookToCatalog(book: MongoBookResult) {
 
 export async function updateUserBook(
   userBookId: string,
-  updates: { status?: ReadingStatus; rating?: number | null },
+  updates: { status?: ReadingStatus; liked?: boolean | null },
 ) {
   const supabase = await createClient();
   const { error } = await supabase

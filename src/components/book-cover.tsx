@@ -7,17 +7,69 @@ const SIZE_CLASSES = {
   lg: "h-[280px] w-[188px] gap-3 p-6 rounded-md",
 } as const;
 
-const TITLE_CLASSES = {
-  sm: "font-serif text-[9px] font-medium leading-[1.15] line-clamp-3 tracking-tight",
-  md: "font-serif text-[11px] font-medium leading-snug line-clamp-4 tracking-tight",
-  lg: "font-serif text-lg font-normal leading-snug line-clamp-6 tracking-tight",
-} as const;
+type Tier = { maxLength: number; font: string; clamp: string };
 
-const AUTHOR_CLASSES = {
-  sm: "hidden",
-  md: "font-mono text-[7.5px] tracking-widest uppercase truncate opacity-85",
-  lg: "font-mono text-[10px] tracking-widest uppercase truncate opacity-90",
-} as const;
+const TITLE_TIERS: Record<"sm" | "md" | "lg", Tier[]> = {
+  sm: [
+    { maxLength: 20, font: "text-[9px]", clamp: "line-clamp-3" },
+    { maxLength: 35, font: "text-[8px]", clamp: "line-clamp-4" },
+    { maxLength: 55, font: "text-[7px]", clamp: "line-clamp-5" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[6px]",
+      clamp: "line-clamp-6",
+    },
+  ],
+  md: [
+    { maxLength: 25, font: "text-[11px]", clamp: "line-clamp-4" },
+    { maxLength: 45, font: "text-[10px]", clamp: "line-clamp-5" },
+    { maxLength: 70, font: "text-[8.5px]", clamp: "line-clamp-6" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[7px]",
+      clamp: "line-clamp-[8]",
+    },
+  ],
+  lg: [
+    { maxLength: 30, font: "text-lg", clamp: "line-clamp-6" },
+    { maxLength: 55, font: "text-[15px]", clamp: "line-clamp-[7]" },
+    { maxLength: 90, font: "text-[13px]", clamp: "line-clamp-[9]" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[11px]",
+      clamp: "line-clamp-[11]",
+    },
+  ],
+};
+
+const AUTHOR_TIERS: Record<"md" | "lg", Tier[]> = {
+  md: [
+    { maxLength: 10, font: "text-[7.5px]", clamp: "line-clamp-1" },
+    { maxLength: 24, font: "text-[6.5px]", clamp: "line-clamp-2" },
+    { maxLength: 42, font: "text-[5.5px]", clamp: "line-clamp-3" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[4.5px]",
+      clamp: "line-clamp-[4]",
+    },
+  ],
+  lg: [
+    { maxLength: 17, font: "text-[10px]", clamp: "line-clamp-1" },
+    { maxLength: 40, font: "text-[8.5px]", clamp: "line-clamp-2" },
+    { maxLength: 75, font: "text-[7px]", clamp: "line-clamp-3" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[6px]",
+      clamp: "line-clamp-[4]",
+    },
+  ],
+};
+
+function pickTier(tiers: Tier[], length: number): Tier {
+  return (
+    tiers.find((tier) => length <= tier.maxLength) ?? tiers[tiers.length - 1]
+  );
+}
 
 export function BookCover({
   title,
@@ -31,6 +83,11 @@ export function BookCover({
   className?: string;
 }) {
   const bg = pickColor(title);
+  const titleTier = pickTier(TITLE_TIERS[size], title.length);
+  const authorTier =
+    size !== "sm" && author
+      ? pickTier(AUTHOR_TIERS[size], author.length)
+      : null;
 
   return (
     <div
@@ -60,15 +117,20 @@ export function BookCover({
       <div className="relative z-10 my-auto flex flex-col gap-1 pl-2 pr-1">
         <p
           className={cn(
-            TITLE_CLASSES[size],
-            "text-balance drop-shadow-md font-serif",
+            "font-serif font-medium leading-[1.15] tracking-tight text-balance drop-shadow-md",
+            titleTier.font,
+            titleTier.clamp,
           )}
         >
           {title}
         </p>
         {author && (
           <p
-            className={cn(AUTHOR_CLASSES[size], "drop-shadow-sm text-brass/90")}
+            className={cn(
+              "font-mono tracking-widest uppercase opacity-85 drop-shadow-sm text-brass/90",
+              authorTier ? authorTier.font : "hidden",
+              authorTier?.clamp,
+            )}
           >
             {author}
           </p>

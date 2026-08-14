@@ -8,7 +8,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: userBooks, error } = await supabase
     .from("user_books")
-    .select("id, status, rating, added_at, books(title, authors)")
+    .select("id, status, liked, added_at, books(title, authors)")
     .order("added_at", { ascending: false });
 
   if (error) throw error;
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       title: userBook.books.title,
       authors: userBook.books.authors,
       status: userBook.status,
-      rating: userBook.rating,
+      liked: userBook.liked,
       addedAt: userBook.added_at,
     });
   }

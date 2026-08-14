@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,18 +13,17 @@ import {
 } from "@/components/ui/dialog";
 import { STATUS_LABELS } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
-import { cn } from "@/lib/utils";
 
 // Read-only: shown on a public profile page to visitors who aren't the
-// owner, so no StatusSelect/RatingInput (those write via RLS policies that
-// only the owner can satisfy anyway) — the badge/stars here are static, and
+// owner, so no StatusSelect/LikeButton (those write via RLS policies that
+// only the owner can satisfy anyway) — the badge/thumb here are static, and
 // the detail view is a dialog rather than a page since there's no editing
 // to link out to.
 export function PublicBookCard({
   title,
   authors,
   status,
-  rating,
+  liked,
   description,
   subjects,
   firstPublishYear,
@@ -32,7 +31,7 @@ export function PublicBookCard({
   title: string;
   authors: string[];
   status: ReadingStatus;
-  rating: number | null;
+  liked: boolean | null;
   description: string | null;
   subjects: string[];
   firstPublishYear: number | null;
@@ -48,19 +47,13 @@ export function PublicBookCard({
     </Badge>
   );
 
-  const starRow = rating && (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((value) => (
-        <Star
-          key={value}
-          className={cn(
-            "size-3.5",
-            value <= rating
-              ? "fill-brass text-brass"
-              : "text-muted-foreground/25",
-          )}
-        />
-      ))}
+  const likeIndicator = liked !== null && (
+    <div className="flex items-center gap-1">
+      {liked ? (
+        <ThumbsUp className="size-3.5 fill-brass text-brass" />
+      ) : (
+        <ThumbsDown className="size-3.5 fill-muted-foreground/40 text-muted-foreground/70" />
+      )}
     </div>
   );
 
@@ -83,7 +76,7 @@ export function PublicBookCard({
                 />
               }
             >
-              <p className="truncate font-serif text-base font-medium leading-snug group-hover:text-primary transition-colors">
+              <p className="font-serif text-base font-medium leading-snug group-hover:text-primary transition-colors">
                 {title}
               </p>
               <p className="truncate text-xs text-muted-foreground mt-0.5">
@@ -91,9 +84,9 @@ export function PublicBookCard({
               </p>
             </DialogTrigger>
             <div className="mt-2">{statusBadge}</div>
-            {starRow && (
+            {likeIndicator && (
               <div className="mt-3 border-t border-border/40 pt-2">
-                {starRow}
+                {likeIndicator}
               </div>
             )}
           </div>
@@ -122,7 +115,7 @@ export function PublicBookCard({
               </p>
             )}
             <div className="mt-1">{statusBadge}</div>
-            {starRow && <div className="mt-1">{starRow}</div>}
+            {likeIndicator && <div className="mt-1">{likeIndicator}</div>}
           </div>
         </div>
 

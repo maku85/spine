@@ -33,7 +33,7 @@ export type PublicLibraryBook = {
   title: string;
   authors: string[];
   status: ReadingStatus;
-  rating: number | null;
+  liked: boolean | null;
   description: string | null;
   subjects: string[];
   firstPublishYear: number | null;

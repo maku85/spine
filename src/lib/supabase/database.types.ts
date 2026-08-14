@@ -40,7 +40,7 @@ export type Database = {
           user_id: string;
           book_id: string;
           status: ReadingStatus;
-          rating: number | null;
+          liked: boolean | null;
           started_at: string | null;
           finished_at: string | null;
           notes: string | null;
@@ -52,7 +52,7 @@ export type Database = {
           user_id: string;
           book_id: string;
           status?: ReadingStatus;
-          rating?: number | null;
+          liked?: boolean | null;
           started_at?: string | null;
           finished_at?: string | null;
           notes?: string | null;
