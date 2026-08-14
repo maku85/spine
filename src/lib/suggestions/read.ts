@@ -46,6 +46,7 @@ type StoredBook = {
   olRatingsCount?: number;
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
+  pendingReview?: boolean;
 };
 
 function toSuggestedBook(
@@ -100,6 +101,7 @@ export async function fetchTopRatedBooks(
     const docs = await collection
       .find({
         olRatingsCount: { $gte: MIN_RATINGS_COUNT },
+        pendingReview: { $ne: true },
         ...displayFilter,
       })
       .sort({ olRating: -1 })

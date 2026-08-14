@@ -29,6 +29,7 @@ type StoredBook = {
   source?: string;
   translations?: { it?: Translation };
   listResolutionCheckedAt?: Date | null;
+  pendingReview?: boolean;
 };
 
 type ListEntry = {
@@ -290,6 +291,7 @@ async function main() {
           alternateIsbns: [],
           source: "list",
           listResolutionCheckedAt: new Date(),
+          pendingReview: true,
           ...(translation ? { translations: { it: translation } } : {}),
         };
         await booksCollection.insertOne(doc);

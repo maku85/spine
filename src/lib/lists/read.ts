@@ -40,12 +40,14 @@ type StoredBook = {
   translations?: { it?: Translation; en?: Translation };
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
+  pendingReview?: boolean;
 };
 
 function isDisplayable(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): boolean {
+  if (doc.pendingReview) return false;
   if (preferredLanguage !== "it") return true;
   return (
     doc.language == null ||
@@ -117,6 +119,7 @@ export async function fetchNotableLists(
 
     const matchedBooks = await booksCollection
       .find({
+        pendingReview: { $ne: true },
         $or: [
           { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },

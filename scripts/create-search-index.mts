@@ -31,6 +31,7 @@ const INDEX_DEFINITION = {
       isbn: { type: "string" },
       alternateIsbns: { type: "string" },
       language: { type: "token" },
+      pendingReview: { type: "boolean" },
       translations: {
         type: "document",
         fields: {

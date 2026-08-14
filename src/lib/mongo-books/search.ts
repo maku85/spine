@@ -60,6 +60,7 @@ type StoredBook = {
   olRatingsCount?: number;
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
+  pendingReview?: boolean;
 };
 
 function toResult(
@@ -108,12 +109,21 @@ const ITALIAN_OR_LEGACY_SEARCH_FILTER = {
   },
 };
 
+const NOT_PENDING_REVIEW_MONGO_FILTER = { pendingReview: { $ne: true } };
+const NOT_PENDING_REVIEW_SEARCH_FILTER = {
+  compound: { mustNot: [{ exists: { path: "pendingReview" } }] },
+};
+
 function mongoDisplayFilter(preferredLanguage: PreferredLanguage) {
-  return preferredLanguage === "it" ? ITALIAN_OR_LEGACY_MONGO_FILTER : {};
+  return preferredLanguage === "it"
+    ? { $and: [ITALIAN_OR_LEGACY_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER] }
+    : NOT_PENDING_REVIEW_MONGO_FILTER;
 }
 
 function searchDisplayFilter(preferredLanguage: PreferredLanguage) {
-  return preferredLanguage === "it" ? [ITALIAN_OR_LEGACY_SEARCH_FILTER] : [];
+  return preferredLanguage === "it"
+    ? [ITALIAN_OR_LEGACY_SEARCH_FILTER, NOT_PENDING_REVIEW_SEARCH_FILTER]
+    : [NOT_PENDING_REVIEW_SEARCH_FILTER];
 }
 
 export async function searchMongoBooks(

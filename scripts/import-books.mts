@@ -70,6 +70,7 @@ type ImportedBook = {
 type StoredBook = ImportedBook & {
   alternateIsbns: string[];
   source: string;
+  pendingReview?: boolean;
 };
 
 function parseArgs(argv: string[]) {
@@ -331,6 +332,7 @@ async function main() {
               ...book,
               alternateIsbns: [],
               source: "search",
+              pendingReview: true,
             });
             imported += 1;
             console.log(`  + ${book.title} (${book.year ?? "anno ignoto"})`);
@@ -346,6 +348,7 @@ async function main() {
               ...book,
               alternateIsbns: [...carriedIsbns],
               source: "search",
+              pendingReview: true,
             });
             imported += 1;
             console.log(
