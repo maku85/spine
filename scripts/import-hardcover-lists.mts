@@ -11,6 +11,45 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const MIN_LIST_FOLLOWERS = 1;
 const MAX_BOOKS_PER_LIST = 300;
 
+const FICTION_GENRES = new Set([
+  "fiction",
+  "fantasy",
+  "science fiction",
+  "romance",
+  "mystery",
+  "thriller",
+  "historical fiction",
+  "horror",
+  "young adult",
+  "literary fiction",
+  "short stories",
+  "dystopian",
+  "adventure",
+  "graphic novels",
+  "poetry",
+]);
+const NONFICTION_GENRES = new Set([
+  "nonfiction",
+  "non-fiction",
+  "business",
+  "self help",
+  "self-help",
+  "biography",
+  "memoir",
+  "history",
+  "science",
+  "psychology",
+  "politics & social sciences",
+  "economics",
+  "philosophy",
+  "health",
+  "true crime",
+  "essays",
+]);
+// Below this many classifiable books, the signal is too thin to trust —
+// keep the list rather than risk dropping a good one on a small sample.
+const MIN_GENRE_SAMPLES = 3;
+
 type ListEntry = {
   isbn: string;
   title: string;
@@ -160,10 +199,15 @@ async function findNotableLists(
   return [...byId.values()].slice(0, maxLists);
 }
 
+type ListFetchResult = {
+  entries: ListEntry[];
+  isFiction: boolean;
+};
+
 async function fetchListEntries(
   token: string,
   listId: number,
-): Promise<ListEntry[]> {
+): Promise<ListFetchResult> {
   const result = (await queryHardcover(
     token,
     `query ($listId: Int!, $limit: Int!) {
@@ -174,6 +218,7 @@ async function fetchListEntries(
             title
             cached_contributors
             default_physical_edition { isbn_13 isbn_10 }
+            cached_tags
           }
         }
       }
@@ -191,6 +236,7 @@ async function fetchListEntries(
               isbn_13: string | null;
               isbn_10: string | null;
             } | null;
+            cached_tags: { Genre?: Array<{ tag: string }> } | null;
           };
         }>;
       };
@@ -199,7 +245,7 @@ async function fetchListEntries(
 
   const rows = result?.data?.lists_by_pk?.list_books ?? [];
 
-  return rows
+  const entries = rows
     .map((row) => ({
       isbn:
         row.book.default_physical_edition?.isbn_13 ??
@@ -210,6 +256,23 @@ async function fetchListEntries(
       position: row.position,
     }))
     .filter((entry): entry is ListEntry => Boolean(entry.isbn));
+
+  let fictionCount = 0;
+  let nonfictionCount = 0;
+  for (const row of rows) {
+    const genres = (row.book.cached_tags?.Genre ?? []).map((g) =>
+      g.tag.toLowerCase(),
+    );
+    const isFiction = genres.some((g) => FICTION_GENRES.has(g));
+    const isNonfiction = genres.some((g) => NONFICTION_GENRES.has(g));
+    if (isFiction && !isNonfiction) fictionCount += 1;
+    else if (isNonfiction && !isFiction) nonfictionCount += 1;
+  }
+  const isFiction =
+    fictionCount + nonfictionCount < MIN_GENRE_SAMPLES ||
+    fictionCount >= nonfictionCount;
+
+  return { entries, isFiction };
 }
 
 async function main() {
@@ -231,6 +294,7 @@ async function main() {
   await client.connect();
 
   let imported = 0;
+  let skippedNonfiction = 0;
   let totalEntries = 0;
 
   try {
@@ -241,7 +305,19 @@ async function main() {
 
     for (const list of notableLists) {
       await sleep(REQUEST_DELAY_MS);
-      const entries = await fetchListEntries(hardcoverToken, list.id);
+      const { entries, isFiction } = await fetchListEntries(
+        hardcoverToken,
+        list.id,
+      );
+      const docId = `hardcover:${list.id}`;
+
+      if (!isFiction) {
+        skippedNonfiction += 1;
+        console.log(`  · "${list.name}": non narrativa, salto`);
+        if (!dryRun) await collection.deleteOne({ _id: docId });
+        continue;
+      }
+
       totalEntries += entries.length;
 
       console.log(
@@ -249,7 +325,7 @@ async function main() {
       );
 
       const doc: ListDoc = {
-        _id: `hardcover:${list.id}`,
+        _id: docId,
         source: "hardcover",
         externalId: String(list.id),
         name: list.name,
@@ -273,7 +349,7 @@ async function main() {
   }
 
   console.log(
-    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${imported} liste importate, ${totalEntries} riferimenti a libri totali.`,
+    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${imported} liste importate, ${skippedNonfiction} non narrative scartate, ${totalEntries} riferimenti a libri totali.`,
   );
 }
 
