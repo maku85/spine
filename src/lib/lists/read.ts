@@ -29,7 +29,6 @@ type StoredBook = {
   _id: string;
   isbn: string | null;
   alternateIsbns?: string[];
-  englishIsbn?: string | null;
   title: string;
   authors: string[];
   year: number | null;
@@ -123,7 +122,6 @@ export async function fetchNotableLists(
         $or: [
           { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },
-          { englishIsbn: { $in: allIsbns } },
           { "translations.it.isbn": { $in: allIsbns } },
           { "translations.en.isbn": { $in: allIsbns } },
         ],
@@ -134,7 +132,6 @@ export async function fetchNotableLists(
     for (const book of matchedBooks) {
       if (book.isbn) byIsbn.set(book.isbn, book);
       for (const alt of book.alternateIsbns ?? []) byIsbn.set(alt, book);
-      if (book.englishIsbn) byIsbn.set(book.englishIsbn, book);
       if (book.translations?.it?.isbn)
         byIsbn.set(book.translations.it.isbn, book);
       if (book.translations?.en?.isbn)

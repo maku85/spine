@@ -16,7 +16,7 @@ type StoredBook = {
   title: string;
   isbn?: string | null;
   language?: string | null;
-  englishIsbn?: string | null;
+  translations?: { en?: { isbn: string } };
   series?: Array<{ name: string; position: number | null }>;
   moodTags?: string[];
   hardcoverCheckedAt?: Date | null;
@@ -24,7 +24,7 @@ type StoredBook = {
 
 function lookupIsbn(book: StoredBook): string | null {
   if (book.language != null && book.language !== "it") return book.isbn ?? null;
-  return book.englishIsbn ?? null;
+  return book.translations?.en?.isbn ?? null;
 }
 
 function sleep(ms: number) {
@@ -181,7 +181,7 @@ async function main() {
 
     const sourceFilter = {
       $or: [
-        { englishIsbn: { $exists: true, $ne: null } },
+        { "translations.en.isbn": { $exists: true, $ne: null } },
         {
           language: { $exists: true, $nin: [null, "it"] },
           isbn: { $exists: true, $ne: null },

@@ -170,8 +170,6 @@ normalized title+author search) and updates:
   `olRatingsCount`/`olWorkKey`), the source the app actually surfaces:
   Google Books' own ratings turned out unreliable for most books (too few
   votes, even for famous titles).
-- **English ISBN** — `englishIsbn`, a pointer used by
-  `import-hardcover-book-data.mts` below to look the book up on Hardcover.
 
 Runs on a bounded batch per invocation (100 books by default) rather than
 the whole catalog at once — Open Library explicitly asks that its APIs
@@ -247,10 +245,8 @@ pnpm resolve-list-books --force           # ignore the 30-day staleness cache
 ## Importing series and mood tags (scripts/import-hardcover-book-data.mts)
 
 Enriches catalog books with series membership and mood tags from
-Hardcover, looked up by whichever non-Italian ISBN the book has on file
-(`isbn` directly for non-Italian-original books, `englishIsbn` for
-legacy Italian ones enriched by `enrich-books.mts`). Re-checks stale
-entries (30 days) unless `--force` is passed.
+Hardcover, looked up by whichever non-Italian ISBN the book has on file.
+Re-checks stale entries (30 days) unless `--force` is passed.
 
 ```bash
 node --env-file=.env.local scripts/import-hardcover-book-data.mts --dry-run

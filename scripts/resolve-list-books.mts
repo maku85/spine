@@ -25,9 +25,8 @@ type StoredBook = {
   categories: string[];
   language: string | null;
   alternateIsbns?: string[];
-  englishIsbn?: string | null; // legacy pointer, only ever set by enrich-books.mts on the pre-existing catalog
   source?: string;
-  translations?: { it?: Translation };
+  translations?: { it?: Translation; en?: Translation };
   listResolutionCheckedAt?: Date | null;
   pendingReview?: boolean;
 };
@@ -135,8 +134,8 @@ async function main() {
         $or: [
           { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },
-          { englishIsbn: { $in: allIsbns } },
           { "translations.it.isbn": { $in: allIsbns } },
+          { "translations.en.isbn": { $in: allIsbns } },
         ],
       })
       .toArray();
@@ -145,9 +144,10 @@ async function main() {
     for (const book of matchedBooks) {
       if (book.isbn) bookByIsbn.set(book.isbn, book);
       for (const alt of book.alternateIsbns ?? []) bookByIsbn.set(alt, book);
-      if (book.englishIsbn) bookByIsbn.set(book.englishIsbn, book);
       if (book.translations?.it?.isbn)
         bookByIsbn.set(book.translations.it.isbn, book);
+      if (book.translations?.en?.isbn)
+        bookByIsbn.set(book.translations.en.isbn, book);
     }
 
     const unmatchedIsbns = allIsbns.filter((isbn) => !bookByIsbn.has(isbn));
@@ -219,7 +219,7 @@ async function main() {
           { _id: book._id },
           {
             $set: {
-              translations: { it: translation },
+              "translations.it": translation,
               listResolutionCheckedAt: new Date(),
             },
           },

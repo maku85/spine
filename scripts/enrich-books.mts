@@ -2,6 +2,10 @@ import { MongoClient } from "mongodb";
 import { curateGenres } from "../src/lib/genres.ts";
 import { isItalian } from "../src/lib/language.ts";
 import { normalizeTitle } from "../src/lib/text.ts";
+import {
+  fetchGoogleBooksByIsbn,
+  type Translation,
+} from "./lib/catalog-upsert.mts";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
@@ -24,7 +28,7 @@ type StoredBook = {
   olRatingsCount?: number | null;
   olCheckedAt?: Date;
   enrichedAt?: Date;
-  englishIsbn?: string | null;
+  translations?: { en?: Translation };
 };
 
 type OLWorkMatch = {
@@ -233,13 +237,6 @@ function editionsForLanguage(
     .filter((entry) => entry.isbn);
 }
 
-function earliestIsbn(editions: OLEdition[]): string | null {
-  const dated = editions
-    .filter((edition) => edition.year !== null)
-    .sort((a, b) => (a.year as number) - (b.year as number));
-  return dated[0]?.isbn ?? editions[0]?.isbn ?? null;
-}
-
 function hasItalianIsbnPrefix(isbn: string): boolean {
   const isbn13 = toIsbn13(isbn);
   return isbn13.startsWith("97888");
@@ -247,6 +244,7 @@ function hasItalianIsbnPrefix(isbn: string): boolean {
 
 async function main() {
   const { max, dryRun, force, isbn } = parseArgs(process.argv.slice(2));
+  const googleApiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
@@ -263,7 +261,7 @@ async function main() {
   let yearUpdated = 0;
   let isbnSwapped = 0;
   let ratingFound = 0;
-  let englishIsbnFound = 0;
+  let englishTranslationsFound = 0;
 
   try {
     const collection = client
@@ -376,12 +374,28 @@ async function main() {
         (candidate) => candidate !== newIsbn,
       );
 
-      const englishIsbn = earliestIsbn(
-        editionsForLanguage(editionEntries, "/languages/eng"),
-      );
-      if (englishIsbn && englishIsbn !== book.englishIsbn) {
-        englishIsbnFound += 1;
-        changes.push(`isbn inglese → ${englishIsbn}`);
+      const englishEditions = editionsForLanguage(
+        editionEntries,
+        "/languages/eng",
+      ).sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+      let englishTranslation: Translation | null = null;
+      for (const edition of englishEditions) {
+        if (!edition.isbn || edition.isbn === book.translations?.en?.isbn) {
+          continue;
+        }
+        const match = await fetchGoogleBooksByIsbn(edition.isbn, googleApiKey);
+        if (match) {
+          englishTranslation = {
+            isbn: edition.isbn,
+            title: match.title,
+            description: match.description,
+          };
+          englishTranslationsFound += 1;
+          changes.push(
+            `traduzione inglese → "${match.title}" (${edition.isbn})`,
+          );
+          break;
+        }
       }
 
       if (rating.count) ratingFound += 1;
@@ -405,12 +419,14 @@ async function main() {
               ...(useYear ? { year: work.firstPublishYear } : {}),
               isbn: newIsbn,
               alternateIsbns: newAlternateIsbns,
-              englishIsbn,
               olWorkKey: work.workKey,
               olRating: rating.average,
               olRatingsCount: rating.count,
               olCheckedAt: new Date(),
               enrichedAt: new Date(),
+              ...(englishTranslation
+                ? { "translations.en": englishTranslation }
+                : {}),
             },
           },
         );
@@ -423,7 +439,7 @@ async function main() {
   }
 
   console.log(
-    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${processed} controllati, ${notFound} non trovati su Open Library, ${descriptionUpdated} trame aggiornate, ${yearUpdated} anni corretti, ${isbnSwapped} isbn allineati all'edizione originale, ${ratingFound} con valutazioni trovate, ${englishIsbnFound} isbn inglesi trovati.`,
+    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${processed} controllati, ${notFound} non trovati su Open Library, ${descriptionUpdated} trame aggiornate, ${yearUpdated} anni corretti, ${isbnSwapped} isbn allineati all'edizione originale, ${ratingFound} con valutazioni trovate, ${englishTranslationsFound} traduzioni inglesi trovate.`,
   );
 }
 
