@@ -1,3 +1,5 @@
+import { normalizeTitle } from "../../src/lib/text.ts";
+
 const USER_AGENT = "Spine (personal book catalog)";
 const OL_REQUEST_DELAY_MS = 350;
 const GOOGLE_REQUEST_DELAY_MS = 250;
@@ -14,7 +16,15 @@ export type Translation = {
   isbn: string;
   title: string;
   description: string | null;
+  workKey: string;
 };
+
+export function computeWorkKey(
+  title: string,
+  author: string | undefined,
+): string {
+  return `${normalizeTitle(title)}::${normalizeTitle(author ?? "")}`;
+}
 
 export type OriginalMatch = {
   title: string;
@@ -174,7 +184,12 @@ async function fetchGoogleBooksItalian(
 ): Promise<Translation | null> {
   const match = await fetchGoogleBooksByIsbn(isbn, apiKey);
   if (!match || match.language !== "it") return null;
-  return { isbn, title: match.title, description: match.description };
+  return {
+    isbn,
+    title: match.title,
+    description: match.description,
+    workKey: computeWorkKey(match.title, match.authors[0]),
+  };
 }
 
 export async function findItalianTranslation(

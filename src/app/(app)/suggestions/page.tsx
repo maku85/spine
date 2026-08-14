@@ -170,8 +170,8 @@ export default async function SuggestionsPage() {
                 author={book.authors.join(", ") || null}
                 yearOrDetail={detail}
                 description={book.description}
-                averageRating={book.olRating}
-                ratingsCount={book.olRatingsCount}
+                averageRating={book.rating}
+                ratingsCount={book.ratingsCount}
                 onAdd={addMongoBookToCatalog.bind(null, book)}
               />
             ))}

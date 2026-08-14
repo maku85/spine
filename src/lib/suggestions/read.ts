@@ -14,14 +14,13 @@ export type SuggestedBook = {
   title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
   description: string | null;
   categories: string[];
   nytRank: number | null;
   nytWeeksOnList: number | null;
   nytListName: string | null;
-  olRating: number | null;
-  olRatingsCount: number | null;
+  rating: number | null;
+  ratingsCount: number | null;
   moodTags: string[];
   series: Array<{ name: string; position: number | null }>;
 };
@@ -30,20 +29,15 @@ type Translation = { isbn: string; title: string; description: string | null };
 
 type StoredBook = {
   _id: string;
-  isbn: string | null;
-  title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
-  description: string | null;
   categories: string[];
-  language?: string | null;
-  translations?: { it?: Translation; en?: Translation };
+  translations?: Partial<Record<string, Translation>>;
   nytRank?: number;
   nytWeeksOnList?: number;
   nytListName?: string;
-  olRating?: number;
-  olRatingsCount?: number;
+  rating?: number;
+  ratingsCount?: number;
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
   pendingReview?: boolean;
@@ -53,27 +47,26 @@ function toSuggestedBook(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): SuggestedBook {
+  const translations = doc.translations ?? {};
   const translation =
     preferredLanguage === "it"
-      ? doc.translations?.it
-      : preferredLanguage === "en"
-        ? doc.translations?.en
-        : undefined;
+      ? (translations.it ?? Object.values(translations).find(Boolean))
+      : (translations.en ??
+        translations.it ??
+        Object.values(translations).find(Boolean));
   return {
     mongoId: doc._id,
-    isbn: translation?.isbn ?? doc.isbn ?? null,
-    title: translation?.title ?? doc.title,
+    isbn: translation?.isbn ?? null,
+    title: translation?.title ?? "",
     authors: doc.authors ?? [],
     year: doc.year ?? null,
-    publisher: doc.publisher ?? null,
-    description:
-      (translation ? translation.description : doc.description) ?? null,
+    description: translation?.description ?? null,
     categories: doc.categories ?? [],
     nytRank: doc.nytRank ?? null,
     nytWeeksOnList: doc.nytWeeksOnList ?? null,
     nytListName: doc.nytListName ?? null,
-    olRating: doc.olRating ?? null,
-    olRatingsCount: doc.olRatingsCount ?? null,
+    rating: doc.rating ?? null,
+    ratingsCount: doc.ratingsCount ?? null,
     moodTags: doc.moodTags ?? [],
     series: doc.series ?? [],
   };
@@ -91,20 +84,15 @@ export async function fetchTopRatedBooks(
       .collection<StoredBook>(COLLECTION_NAME);
     const displayFilter =
       preferredLanguage === "it"
-        ? {
-            $or: [
-              { language: { $in: [null, "it"] } },
-              { "translations.it": { $exists: true } },
-            ],
-          }
+        ? { "translations.it": { $exists: true } }
         : {};
     const docs = await collection
       .find({
-        olRatingsCount: { $gte: MIN_RATINGS_COUNT },
+        ratingsCount: { $gte: MIN_RATINGS_COUNT },
         pendingReview: { $ne: true },
         ...displayFilter,
       })
-      .sort({ olRating: -1 })
+      .sort({ rating: -1 })
       .toArray();
 
     return docs.map((doc) => toSuggestedBook(doc, preferredLanguage));

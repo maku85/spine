@@ -47,8 +47,7 @@ export function SearchResultCard({
 
   const nytInfo =
     item.source === "mongo" && item.book.nytRank ? item.book : null;
-  const rating =
-    item.source === "mongo" && item.book.olRating ? item.book : null;
+  const rating = item.source === "mongo" && item.book.rating ? item.book : null;
   const moodTags = item.source === "mongo" ? item.book.moodTags : [];
   const series = item.source === "mongo" ? item.book.series : [];
   const primarySeries = series[0] ?? null;
@@ -107,9 +106,9 @@ export function SearchResultCard({
                   {rating && (
                     <span className="flex items-center gap-1">
                       <Star className="size-3 fill-brass text-brass" />
-                      {rating.olRating?.toFixed(1)}
-                      {rating.olRatingsCount &&
-                        ` (${rating.olRatingsCount.toLocaleString(numberLocale)})`}
+                      {rating.rating?.toFixed(1)}
+                      {rating.ratingsCount &&
+                        ` (${rating.ratingsCount.toLocaleString(numberLocale)})`}
                     </span>
                   )}
                 </p>
@@ -152,11 +151,6 @@ export function SearchResultCard({
                     {t("year")}: {item.year}
                   </p>
                 )}
-                {item.source === "mongo" && item.book.publisher && (
-                  <p className="font-mono text-xs text-muted-foreground truncate">
-                    {t("publisher")}: {item.book.publisher}
-                  </p>
-                )}
                 {series.length > 0 && (
                   <p className="font-mono text-xs text-muted-foreground truncate">
                     {t("series")}:{" "}
@@ -183,9 +177,9 @@ export function SearchResultCard({
                 {rating && (
                   <p className="flex items-center gap-1 text-xs font-medium text-brass">
                     <Star className="size-3.5 fill-brass text-brass" />
-                    {rating.olRating?.toFixed(1)}
-                    {rating.olRatingsCount &&
-                      ` (${rating.olRatingsCount.toLocaleString(numberLocale)} ${t("votes")})`}
+                    {rating.rating?.toFixed(1)}
+                    {rating.ratingsCount &&
+                      ` (${rating.ratingsCount.toLocaleString(numberLocale)} ${t("votes")})`}
                   </p>
                 )}
                 {details && details.subjects.length > 0 && (

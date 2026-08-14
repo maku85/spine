@@ -27,16 +27,11 @@ type Translation = { isbn: string; title: string; description: string | null };
 
 type StoredBook = {
   _id: string;
-  isbn: string | null;
-  alternateIsbns?: string[];
-  title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
-  description: string | null;
   categories: string[];
-  language?: string | null;
-  translations?: { it?: Translation; en?: Translation };
+  alternateIsbns?: string[];
+  translations?: Partial<Record<string, Translation>>;
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
   pendingReview?: boolean;
@@ -48,10 +43,21 @@ function isDisplayable(
 ): boolean {
   if (doc.pendingReview) return false;
   if (preferredLanguage !== "it") return true;
+  return Boolean(doc.translations?.it);
+}
+
+function pickTranslation(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): Translation | undefined {
+  const translations = doc.translations ?? {};
+  if (preferredLanguage === "it") {
+    return translations.it ?? Object.values(translations).find(Boolean);
+  }
   return (
-    doc.language == null ||
-    doc.language === "it" ||
-    Boolean(doc.translations?.it)
+    translations.en ??
+    translations.it ??
+    Object.values(translations).find(Boolean)
   );
 }
 
@@ -72,29 +78,22 @@ function toSuggestedBook(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): SuggestedBook {
-  const translation =
-    preferredLanguage === "it"
-      ? doc.translations?.it
-      : preferredLanguage === "en"
-        ? doc.translations?.en
-        : undefined;
+  const translation = pickTranslation(doc, preferredLanguage);
   return {
     mongoId: doc._id,
-    isbn: translation?.isbn ?? doc.isbn ?? null,
-    title: translation?.title ?? doc.title,
+    isbn: translation?.isbn ?? null,
+    title: translation?.title ?? "",
     authors: doc.authors ?? [],
     year: doc.year ?? null,
-    publisher: doc.publisher ?? null,
-    description:
-      (translation ? translation.description : doc.description) ?? null,
+    description: translation?.description ?? null,
     categories: doc.categories ?? [],
     nytRank: null,
     nytWeeksOnList: null,
     nytListName: null,
     moodTags: doc.moodTags ?? [],
     series: doc.series ?? [],
-    olRating: null,
-    olRatingsCount: null,
+    rating: null,
+    ratingsCount: null,
   };
 }
 
@@ -120,7 +119,6 @@ export async function fetchNotableLists(
       .find({
         pendingReview: { $ne: true },
         $or: [
-          { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },
           { "translations.it.isbn": { $in: allIsbns } },
           { "translations.en.isbn": { $in: allIsbns } },
@@ -130,12 +128,10 @@ export async function fetchNotableLists(
 
     const byIsbn = new Map<string, StoredBook>();
     for (const book of matchedBooks) {
-      if (book.isbn) byIsbn.set(book.isbn, book);
       for (const alt of book.alternateIsbns ?? []) byIsbn.set(alt, book);
-      if (book.translations?.it?.isbn)
-        byIsbn.set(book.translations.it.isbn, book);
-      if (book.translations?.en?.isbn)
-        byIsbn.set(book.translations.en.isbn, book);
+      for (const translation of Object.values(book.translations ?? {})) {
+        if (translation?.isbn) byIsbn.set(translation.isbn, book);
+      }
     }
 
     return lists

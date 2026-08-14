@@ -15,14 +15,13 @@ export type MongoBookResult = {
   title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
   description: string | null;
   categories: string[];
   nytRank: number | null;
   nytWeeksOnList: number | null;
   nytListName: string | null;
-  olRating: number | null;
-  olRatingsCount: number | null;
+  rating: number | null;
+  ratingsCount: number | null;
   moodTags: string[];
   series: Array<{ name: string; position: number | null }>;
 };
@@ -39,74 +38,70 @@ export type BrowseSortKey =
   | "year_desc"
   | "year_asc";
 
-type Translation = { isbn: string; title: string; description: string | null };
+type Translation = {
+  isbn: string;
+  title: string;
+  description: string | null;
+};
 
 type StoredBook = {
   _id: string;
-  isbn: string | null;
-  alternateIsbns?: string[];
-  title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
-  description: string | null;
   categories: string[];
-  language?: string | null;
-  translations?: { it?: Translation; en?: Translation };
+  alternateIsbns?: string[];
+  translations?: Partial<Record<string, Translation>>;
   nytRank?: number;
   nytWeeksOnList?: number;
   nytListName?: string;
-  olRating?: number;
-  olRatingsCount?: number;
+  rating?: number;
+  ratingsCount?: number;
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
   pendingReview?: boolean;
 };
 
+function pickTranslation(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): Translation | undefined {
+  const translations = doc.translations ?? {};
+  if (preferredLanguage === "it") {
+    return translations.it ?? Object.values(translations).find(Boolean);
+  }
+  return (
+    translations.en ??
+    translations.it ??
+    Object.values(translations).find(Boolean)
+  );
+}
+
 function toResult(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): MongoBookResult {
-  const translation =
-    preferredLanguage === "it"
-      ? doc.translations?.it
-      : preferredLanguage === "en"
-        ? doc.translations?.en
-        : undefined;
+  const translation = pickTranslation(doc, preferredLanguage);
   return {
     mongoId: doc._id,
-    isbn: translation?.isbn ?? doc.isbn ?? null,
-    title: translation?.title ?? doc.title,
+    isbn: translation?.isbn ?? null,
+    title: translation?.title ?? "",
     authors: doc.authors ?? [],
     year: doc.year ?? null,
-    publisher: doc.publisher ?? null,
-    description:
-      (translation ? translation.description : doc.description) ?? null,
+    description: translation?.description ?? null,
     categories: doc.categories ?? [],
     nytRank: doc.nytRank ?? null,
     nytWeeksOnList: doc.nytWeeksOnList ?? null,
     nytListName: doc.nytListName ?? null,
-    olRating: doc.olRating ?? null,
-    olRatingsCount: doc.olRatingsCount ?? null,
+    rating: doc.rating ?? null,
+    ratingsCount: doc.ratingsCount ?? null,
     moodTags: doc.moodTags ?? [],
     series: doc.series ?? [],
   };
 }
 
-const ITALIAN_OR_LEGACY_MONGO_FILTER = {
-  $or: [
-    { language: { $in: [null, "it"] } },
-    { "translations.it": { $exists: true } },
-  ],
-};
-const ITALIAN_OR_LEGACY_SEARCH_FILTER = {
-  compound: {
-    should: [
-      { equals: { path: "language", value: "it" } },
-      { exists: { path: "translations.it.isbn" } },
-    ],
-    minimumShouldMatch: 1,
-  },
+const ITALIAN_MONGO_FILTER = { "translations.it": { $exists: true } };
+const ITALIAN_SEARCH_FILTER = {
+  exists: { path: "translations.it.isbn" },
 };
 
 const NOT_PENDING_REVIEW_MONGO_FILTER = { pendingReview: { $ne: true } };
@@ -116,15 +111,13 @@ const NOT_PENDING_REVIEW_SEARCH_FILTER = {
 
 function mongoDisplayFilter(preferredLanguage: PreferredLanguage) {
   return preferredLanguage === "it"
-    ? {
-        $and: [ITALIAN_OR_LEGACY_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER],
-      }
+    ? { $and: [ITALIAN_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER] }
     : NOT_PENDING_REVIEW_MONGO_FILTER;
 }
 
 function searchDisplayFilter(preferredLanguage: PreferredLanguage) {
   return preferredLanguage === "it"
-    ? [ITALIAN_OR_LEGACY_SEARCH_FILTER, NOT_PENDING_REVIEW_SEARCH_FILTER]
+    ? [ITALIAN_SEARCH_FILTER, NOT_PENDING_REVIEW_SEARCH_FILTER]
     : [NOT_PENDING_REVIEW_SEARCH_FILTER];
 }
 
@@ -157,7 +150,6 @@ export async function searchMongoBooks(
                 text: {
                   query: isbn,
                   path: [
-                    "isbn",
                     "alternateIsbns",
                     "translations.it.isbn",
                     "translations.en.isbn",
@@ -173,7 +165,6 @@ export async function searchMongoBooks(
             must: words.map((word) => ({
               compound: {
                 should: [
-                  { autocomplete: { query: word, path: "title" } },
                   { autocomplete: { query: word, path: "authors" } },
                   {
                     autocomplete: {
@@ -224,10 +215,16 @@ export async function searchMongoBooks(
   }
 }
 
+function displayTitleExpr(preferredLanguage: PreferredLanguage) {
+  return preferredLanguage === "it"
+    ? "$translations.it.title"
+    : { $ifNull: ["$translations.en.title", "$translations.it.title"] };
+}
+
 const BROWSE_SORT_SPECS: Record<BrowseSortKey, Record<string, 1 | -1>> = {
-  rating_desc: { olRating: -1 },
-  title_asc: { title: 1 },
-  title_desc: { title: -1 },
+  rating_desc: { rating: -1 },
+  title_asc: { displayTitle: 1 },
+  title_desc: { displayTitle: -1 },
   year_desc: { year: -1 },
   year_asc: { year: 1 },
 };
@@ -251,10 +248,13 @@ export async function browseMongoBooks(
     const [totalCount, docs] = await Promise.all([
       collection.countDocuments(filter),
       collection
-        .find(filter)
-        .sort(BROWSE_SORT_SPECS[sort])
-        .skip((page - 1) * SEARCH_PAGE_SIZE)
-        .limit(SEARCH_PAGE_SIZE)
+        .aggregate<StoredBook>([
+          { $match: filter },
+          { $addFields: { displayTitle: displayTitleExpr(preferredLanguage) } },
+          { $sort: BROWSE_SORT_SPECS[sort] },
+          { $skip: (page - 1) * SEARCH_PAGE_SIZE },
+          { $limit: SEARCH_PAGE_SIZE },
+        ])
         .toArray(),
     ]);
 

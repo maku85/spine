@@ -10,15 +10,6 @@ const INDEX_DEFINITION = {
   mappings: {
     dynamic: false,
     fields: {
-      title: [
-        {
-          type: "autocomplete",
-          tokenization: "edgeGram",
-          minGrams: 2,
-          maxGrams: 15,
-          foldDiacritics: true,
-        },
-      ],
       authors: [
         {
           type: "autocomplete",
@@ -28,9 +19,7 @@ const INDEX_DEFINITION = {
           foldDiacritics: true,
         },
       ],
-      isbn: { type: "string" },
       alternateIsbns: { type: "string" },
-      language: { type: "token" },
       pendingReview: { type: "boolean" },
       translations: {
         type: "document",
