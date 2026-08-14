@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, TrendingUp } from "lucide-react";
+import { Check, Star, TrendingUp } from "lucide-react";
 import { useState, useTransition } from "react";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,11 @@ export function SearchResultCard({
 
   const nytInfo =
     item.source === "mongo" && item.book.nytRank ? item.book : null;
+  const rating =
+    item.source === "mongo" && item.book.olRating ? item.book : null;
+  const moodTags = item.source === "mongo" ? item.book.moodTags : [];
+  const series = item.source === "mongo" ? item.book.series : [];
+  const primarySeries = series[0] ?? null;
 
   function handleOpenChange(open: boolean) {
     if (open && item.source === "openlibrary" && !details) {
@@ -80,12 +85,39 @@ export function SearchResultCard({
               <p className="truncate text-sm text-muted-foreground">
                 {item.authors.join(", ") || "Autore sconosciuto"}
                 {item.year && ` · ${item.year}`}
+                {primarySeries &&
+                  ` · ${primarySeries.name}${primarySeries.position ? ` #${primarySeries.position}` : ""}`}
               </p>
-              {nytInfo && (
-                <p className="mt-1 flex items-center gap-1 text-xs font-medium text-brass">
-                  <TrendingUp className="size-3" />
-                  NYT #{nytInfo.nytRank}
+              {(nytInfo || rating) && (
+                <p className="mt-1 flex items-center gap-2 text-xs font-medium text-brass">
+                  {nytInfo && (
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="size-3" />
+                      NYT #{nytInfo.nytRank}
+                    </span>
+                  )}
+                  {rating && (
+                    <span className="flex items-center gap-1">
+                      <Star className="size-3 fill-brass text-brass" />
+                      {rating.olRating?.toFixed(1)}
+                      {rating.olRatingsCount &&
+                        ` (${rating.olRatingsCount.toLocaleString("it-IT")})`}
+                    </span>
+                  )}
                 </p>
+              )}
+              {moodTags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {moodTags.slice(0, 3).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="bg-secondary/40 font-mono text-[9px] tracking-widest text-muted-foreground uppercase border-border/60"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               )}
             </div>
           </DialogTrigger>
@@ -117,6 +149,17 @@ export function SearchResultCard({
                     Editore: {item.book.publisher}
                   </p>
                 )}
+                {series.length > 0 && (
+                  <p className="font-mono text-xs text-muted-foreground truncate">
+                    Serie:{" "}
+                    {series
+                      .map(
+                        (s) =>
+                          `${s.name}${s.position ? ` #${s.position}` : ""}`,
+                      )
+                      .join(", ")}
+                  </p>
+                )}
                 {nytInfo && (
                   <Badge
                     variant="outline"
@@ -129,6 +172,14 @@ export function SearchResultCard({
                       : ""}
                   </Badge>
                 )}
+                {rating && (
+                  <p className="flex items-center gap-1 text-xs font-medium text-brass">
+                    <Star className="size-3.5 fill-brass text-brass" />
+                    {rating.olRating?.toFixed(1)}
+                    {rating.olRatingsCount &&
+                      ` (${rating.olRatingsCount.toLocaleString("it-IT")} voti)`}
+                  </p>
+                )}
                 {details && details.subjects.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {details.subjects.slice(0, 5).map((subject) => (
@@ -140,6 +191,24 @@ export function SearchResultCard({
                         {subject}
                       </Badge>
                     ))}
+                  </div>
+                )}
+                {moodTags.length > 0 && (
+                  <div className="mt-1 flex flex-col gap-1.5">
+                    <span className="font-mono text-[9px] tracking-widest text-muted-foreground/70 uppercase">
+                      Atmosfera
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {moodTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="bg-primary/5 font-mono text-[9px] tracking-widest text-primary/80 uppercase border-primary/20"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

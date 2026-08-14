@@ -26,7 +26,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <Button
-          render={<Link href="/books/add" />}
+          render={<Link href="/explore" />}
           nativeButton={false}
           className="mt-2 gap-1.5"
         >

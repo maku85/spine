@@ -33,6 +33,8 @@ type StoredBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  moodTags?: string[];
+  series?: Array<{ name: string; position: number | null }>;
 };
 
 export type SuggestedListEntry = {
@@ -61,6 +63,8 @@ function toSuggestedBook(doc: StoredBook): SuggestedBook {
     nytRank: null,
     nytWeeksOnList: null,
     nytListName: null,
+    moodTags: doc.moodTags ?? [],
+    series: doc.series ?? [],
     olRating: null,
     olRatingsCount: null,
   };

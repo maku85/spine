@@ -1,7 +1,7 @@
 import {
   BookOpen,
+  Compass,
   LogOut,
-  Plus,
   Settings,
   Sparkles,
   Users,
@@ -96,23 +96,23 @@ export default async function AppLayout({
             </Button>
 
             <Button
-              render={<Link href="/books/add" />}
+              render={<Link href="/explore" />}
               nativeButton={false}
               size="icon-sm"
-              aria-label="Aggiungi libro"
-              title="Aggiungi libro"
+              aria-label="Esplora"
+              title="Esplora"
               className="shadow-xs sm:hidden"
             >
-              <Plus className="size-4" />
+              <Compass className="size-4" />
             </Button>
             <Button
-              render={<Link href="/books/add" />}
+              render={<Link href="/explore" />}
               nativeButton={false}
               size="sm"
               className="hidden gap-1.5 shadow-xs sm:inline-flex"
             >
-              <Plus className="size-4" />
-              Aggiungi libro
+              <Compass className="size-4" />
+              Esplora
             </Button>
 
             {profile && (

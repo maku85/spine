@@ -6,8 +6,20 @@ import { IsbnScannerDialog } from "@/components/isbn-scanner-dialog";
 import { SearchResultCard } from "@/components/search-result-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { addBookToCatalog, addMongoBookToCatalog } from "@/lib/actions/books";
-import { type SearchResultsPage, searchBooks } from "@/lib/search-books";
+import type { BrowseSortKey } from "@/lib/mongo-books/search";
+import {
+  browseBooks,
+  type SearchResultsPage,
+  searchBooks,
+} from "@/lib/search-books";
 import { SEARCH_PAGE_SIZE } from "@/lib/search-books-constants";
 
 const EMPTY_PAGE: SearchResultsPage = {
@@ -17,21 +29,34 @@ const EMPTY_PAGE: SearchResultsPage = {
   pageSize: SEARCH_PAGE_SIZE,
 };
 
+const SORT_LABELS: Record<BrowseSortKey, string> = {
+  rating_desc: "Più votati",
+  title_asc: "Titolo A-Z",
+  title_desc: "Titolo Z-A",
+  year_desc: "Più recenti",
+  year_asc: "Più datati",
+};
+
 export function BookSearch() {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<BrowseSortKey>("rating_desc");
   const [page, setPage] = useState(1);
   const [resultsPage, setResultsPage] = useState<SearchResultsPage>(EMPTY_PAGE);
   const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set());
   const [isSearching, startSearch] = useTransition();
   const [isAdding, startAdd] = useTransition();
 
+  const isBrowsing = !query.trim();
+
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setResultsPage(EMPTY_PAGE);
+    if (isBrowsing) {
+      startSearch(async () => {
+        setResultsPage(await browseBooks(sort, page));
+      });
       return;
     }
 
+    const trimmed = query.trim();
     const timeout = setTimeout(() => {
       startSearch(async () => {
         setResultsPage(await searchBooks(trimmed, page));
@@ -39,7 +64,7 @@ export function BookSearch() {
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query, page]);
+  }, [query, sort, page, isBrowsing]);
 
   const totalPages = Math.max(
     1,
@@ -68,10 +93,39 @@ export function BookSearch() {
           }}
         />
       </div>
-      {isSearching && (
-        <p className="text-sm text-muted-foreground">Ricerca in corso…</p>
+      {isBrowsing && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {resultsPage.totalCount > 0
+              ? `${resultsPage.totalCount.toLocaleString("it-IT")} libri nel catalogo`
+              : "Catalogo"}
+          </p>
+          <Select
+            value={sort}
+            onValueChange={(value) => {
+              setSort(value as BrowseSortKey);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[160px] bg-background/80 border-border/70 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(SORT_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value} className="text-xs">
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
-      {!isSearching && query.trim() && (
+      {isSearching && (
+        <p className="text-sm text-muted-foreground">
+          {isBrowsing ? "Caricamento…" : "Ricerca in corso…"}
+        </p>
+      )}
+      {!isSearching && !isBrowsing && (
         <p className="text-sm text-muted-foreground">
           {resultsPage.totalCount === 0
             ? "Nessun risultato"

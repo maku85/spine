@@ -1,6 +1,8 @@
 "use server";
 
 import {
+  type BrowseSortKey,
+  browseMongoBooks,
   type MongoBookResult,
   searchMongoBooks,
 } from "@/lib/mongo-books/search";
@@ -70,6 +72,28 @@ export async function searchBooks(
       book,
     })),
     totalCount: olPage.totalCount,
+    page,
+    pageSize: SEARCH_PAGE_SIZE,
+  };
+}
+
+// Browsing (no search query) only ever has catalog data to show — there's
+// no Open Library fallback here, unlike searchBooks above.
+export async function browseBooks(
+  sort: BrowseSortKey,
+  page = 1,
+): Promise<SearchResultsPage> {
+  const mongoPage = await browseMongoBooks(sort, page);
+  return {
+    items: mongoPage.items.map((book) => ({
+      source: "mongo" as const,
+      key: `mongo:${book.mongoId}`,
+      title: book.title,
+      authors: book.authors,
+      year: book.year,
+      book,
+    })),
+    totalCount: mongoPage.totalCount,
     page,
     pageSize: SEARCH_PAGE_SIZE,
   };

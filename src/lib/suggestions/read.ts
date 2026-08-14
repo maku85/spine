@@ -21,6 +21,8 @@ export type SuggestedBook = {
   nytListName: string | null;
   olRating: number | null;
   olRatingsCount: number | null;
+  moodTags: string[];
+  series: Array<{ name: string; position: number | null }>;
 };
 
 type StoredBook = {
@@ -37,6 +39,8 @@ type StoredBook = {
   nytListName?: string;
   olRating?: number;
   olRatingsCount?: number;
+  moodTags?: string[];
+  series?: Array<{ name: string; position: number | null }>;
 };
 
 function toSuggestedBook(doc: StoredBook): SuggestedBook {
@@ -54,6 +58,8 @@ function toSuggestedBook(doc: StoredBook): SuggestedBook {
     nytListName: doc.nytListName ?? null,
     olRating: doc.olRating ?? null,
     olRatingsCount: doc.olRatingsCount ?? null,
+    moodTags: doc.moodTags ?? [],
+    series: doc.series ?? [],
   };
 }
 
