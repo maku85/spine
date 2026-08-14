@@ -17,6 +17,7 @@ type StoredBook = {
   year: number | null;
   description: string | null;
   categories: string[];
+  language?: string | null;
   alternateIsbns?: string[];
   olWorkKey?: string | null;
   olRating?: number | null;
@@ -269,11 +270,12 @@ async function main() {
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
 
+    const languageFilter = { language: { $in: [null, "it"] } };
     const query = isbn
-      ? { isbn }
+      ? { isbn, ...languageFilter }
       : force
-        ? {}
-        : { enrichedAt: { $exists: false } };
+        ? languageFilter
+        : { enrichedAt: { $exists: false }, ...languageFilter };
 
     const candidates = await collection
       .find(query)

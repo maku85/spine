@@ -30,6 +30,27 @@ const INDEX_DEFINITION = {
       ],
       isbn: { type: "string" },
       alternateIsbns: { type: "string" },
+      language: { type: "token" },
+      translations: {
+        type: "document",
+        fields: {
+          it: {
+            type: "document",
+            fields: {
+              title: [
+                {
+                  type: "autocomplete",
+                  tokenization: "edgeGram",
+                  minGrams: 2,
+                  maxGrams: 15,
+                  foldDiacritics: true,
+                },
+              ],
+              isbn: { type: "string" },
+            },
+          },
+        },
+      },
     },
   },
 };

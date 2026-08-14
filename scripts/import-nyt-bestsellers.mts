@@ -1,18 +1,13 @@
 import { MongoClient } from "mongodb";
-import { normalizeTitle } from "../src/lib/text.ts";
 import { DEFAULT_NYT_LISTS } from "./data/nyt-lists.mts";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
-const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
 const LISTS_COLLECTION = process.env.MONGODB_LISTS_COLLECTION ?? "lists";
 
 const NYT_REQUEST_DELAY_MS = 13_000;
-const GOOGLE_REQUEST_DELAY_MS = 250;
 
 type NytBook = {
   rank: number;
-  rankLastWeek: number;
-  weeksOnList: number;
   isbn: string | null;
   title: string;
   author: string | null;
@@ -34,28 +29,6 @@ type ListDoc = {
   followersCount: number | null;
   entries: ListEntry[];
   updatedAt: Date;
-};
-
-type StoredBook = {
-  _id: string;
-  isbn: string | null;
-  title: string;
-  authors: string[];
-  year: number | null;
-  publisher: string | null;
-  description: string | null;
-  categories: string[];
-  averageRating: number | null;
-  ratingsCount: number | null;
-  workKey?: string;
-  alternateIsbns?: string[];
-  source?: string;
-  language?: string | null;
-  nytRank?: number;
-  nytRankLastWeek?: number;
-  nytWeeksOnList?: number;
-  nytListName?: string;
-  nytCheckedAt?: Date;
 };
 
 function sleep(ms: number) {
@@ -104,8 +77,6 @@ async function fetchNytList(
   const json = await res.json();
   const books: Array<{
     rank?: number;
-    rank_last_week?: number;
-    weeks_on_list?: number;
     primary_isbn13?: string;
     title?: string;
     author?: string;
@@ -115,56 +86,10 @@ async function fetchNytList(
     .filter((b) => b.title)
     .map((b) => ({
       rank: b.rank ?? 0,
-      rankLastWeek: b.rank_last_week ?? 0,
-      weeksOnList: b.weeks_on_list ?? 0,
       isbn: b.primary_isbn13 ?? null,
       title: b.title as string,
       author: b.author ?? null,
     }));
-}
-
-type GoogleBookMatch = {
-  title: string;
-  authors: string[];
-  year: number | null;
-  publisher: string | null;
-  description: string | null;
-  categories: string[];
-  language: string | null;
-};
-
-async function fetchFromGoogleBooksByIsbn(
-  isbn: string,
-  apiKey: string | undefined,
-): Promise<GoogleBookMatch | null> {
-  const params = new URLSearchParams({ q: `isbn:${isbn}` });
-  if (apiKey) params.set("key", apiKey);
-
-  const res = await fetchWithRetry(
-    `https://www.googleapis.com/books/v1/volumes?${params.toString()}`,
-    `Google Books isbn:${isbn}`,
-  );
-  await sleep(GOOGLE_REQUEST_DELAY_MS);
-  if (!res) return null;
-
-  const info = (await res.json()).items?.[0]?.volumeInfo;
-  if (!info?.title) return null;
-
-  return {
-    title: info.title,
-    authors: info.authors ?? [],
-    year: info.publishedDate
-      ? Number(info.publishedDate.slice(0, 4)) || null
-      : null,
-    publisher: info.publisher ?? null,
-    description: info.description ?? null,
-    categories: info.categories ?? [],
-    language: info.language ?? null,
-  };
-}
-
-function workKeyFor(title: string, authors: string[]): string {
-  return `${normalizeTitle(title)}::${normalizeTitle(authors[0] ?? "")}`;
 }
 
 async function main() {
@@ -175,7 +100,6 @@ async function main() {
     console.error("NYT_BOOKS_API_KEY non impostata.");
     process.exit(1);
   }
-  const googleApiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
@@ -186,14 +110,10 @@ async function main() {
   const client = new MongoClient(mongoUri);
   await client.connect();
 
-  let matched = 0;
-  let inserted = 0;
-  let skipped = 0;
+  let imported = 0;
+  let totalEntries = 0;
 
   try {
-    const collection = client
-      .db(DB_NAME)
-      .collection<StoredBook>(COLLECTION_NAME);
     const listsCollection = client
       .db(DB_NAME)
       .collection<ListDoc>(LISTS_COLLECTION);
@@ -204,6 +124,15 @@ async function main() {
       if (index < DEFAULT_NYT_LISTS.length - 1)
         await sleep(NYT_REQUEST_DELAY_MS);
 
+      const entries = books
+        .filter((b) => b.isbn)
+        .map((b) => ({
+          isbn: b.isbn as string,
+          title: b.title,
+          author: b.author,
+          position: b.rank,
+        }));
+
       const listDoc: ListDoc = {
         _id: `nyt:${listName}`,
         source: "nyt",
@@ -211,16 +140,13 @@ async function main() {
         name: label,
         description: null,
         followersCount: null,
-        entries: books
-          .filter((b) => b.isbn)
-          .map((b) => ({
-            isbn: b.isbn as string,
-            title: b.title,
-            author: b.author,
-            position: b.rank,
-          })),
+        entries,
         updatedAt: new Date(),
       };
+
+      totalEntries += entries.length;
+      console.log(`  ✓ ${entries.length} libri con isbn`);
+
       if (!dryRun) {
         await listsCollection.updateOne(
           { _id: listDoc._id },
@@ -228,96 +154,14 @@ async function main() {
           { upsert: true },
         );
       }
-
-      for (const nytBook of books) {
-        const existing = nytBook.isbn
-          ? await collection.findOne({
-              $or: [{ isbn: nytBook.isbn }, { alternateIsbns: nytBook.isbn }],
-            })
-          : await collection.findOne({
-              workKey: workKeyFor(
-                nytBook.title,
-                nytBook.author ? [nytBook.author] : [],
-              ),
-            });
-
-        const nytFields = {
-          nytRank: nytBook.rank,
-          nytRankLastWeek: nytBook.rankLastWeek,
-          nytWeeksOnList: nytBook.weeksOnList,
-          nytListName: label,
-          nytCheckedAt: new Date(),
-        };
-
-        if (existing) {
-          matched += 1;
-          console.log(`  = ${nytBook.title}: già in catalogo, aggiorno rank`);
-          if (!dryRun) {
-            await collection.updateOne(
-              { _id: existing._id },
-              { $set: nytFields },
-            );
-          }
-          continue;
-        }
-
-        if (!nytBook.isbn) {
-          skipped += 1;
-          continue;
-        }
-
-        const googleMatch = await fetchFromGoogleBooksByIsbn(
-          nytBook.isbn,
-          googleApiKey,
-        );
-        if (!googleMatch) {
-          skipped += 1;
-          console.log(
-            `  ✗ ${nytBook.title}: non trovato su Google Books, salto`,
-          );
-          continue;
-        }
-
-        const authors =
-          googleMatch.authors.length > 0
-            ? googleMatch.authors
-            : nytBook.author
-              ? [nytBook.author]
-              : [];
-
-        const doc: StoredBook = {
-          _id: `nyt:${nytBook.isbn}`,
-          isbn: nytBook.isbn,
-          title: googleMatch.title,
-          authors,
-          year: googleMatch.year,
-          publisher: googleMatch.publisher,
-          description: googleMatch.description,
-          categories: googleMatch.categories,
-          averageRating: null,
-          ratingsCount: null,
-          workKey: workKeyFor(googleMatch.title, authors),
-          alternateIsbns: [],
-          source: "nyt",
-          language: googleMatch.language,
-          ...nytFields,
-        };
-
-        inserted += 1;
-        console.log(
-          `  + ${doc.title} (${doc.language ?? "lingua ignota"}, nuovo in catalogo)`,
-        );
-        if (!dryRun) {
-          await collection.insertOne(doc);
-        }
-      }
+      imported += 1;
     }
   } finally {
     await client.close();
   }
 
   console.log(
-    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${matched} già in catalogo aggiornati, ${inserted} nuovi importati da Google Books, ${skipped} non risolti.`,
+    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${imported} liste importate, ${totalEntries} riferimenti a libri totali.`,
   );
 }
 

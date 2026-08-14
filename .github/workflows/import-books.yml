@@ -24,4 +24,4 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
-        run: node scripts/import-google-books.mts --order-by=newest --max=100
+        run: node scripts/import-books.mts --order-by=newest --max=100

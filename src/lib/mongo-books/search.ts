@@ -2,6 +2,7 @@
 
 import { getMongoClient } from "@/lib/mongo/client";
 import { SEARCH_PAGE_SIZE } from "@/lib/search-books-constants";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
 import { normalizeIsbn } from "@/lib/text";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
@@ -38,6 +39,8 @@ export type BrowseSortKey =
   | "year_desc"
   | "year_asc";
 
+type Translation = { isbn: string; title: string; description: string | null };
+
 type StoredBook = {
   _id: string;
   isbn: string | null;
@@ -48,6 +51,8 @@ type StoredBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  language?: string | null;
+  translations?: { it?: Translation };
   nytRank?: number;
   nytWeeksOnList?: number;
   nytListName?: string;
@@ -57,15 +62,19 @@ type StoredBook = {
   series?: Array<{ name: string; position: number | null }>;
 };
 
-function toResult(doc: StoredBook): MongoBookResult {
+function toResult(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): MongoBookResult {
+  const it = preferredLanguage === "it" ? doc.translations?.it : undefined;
   return {
     mongoId: doc._id,
-    isbn: doc.isbn ?? null,
-    title: doc.title,
+    isbn: it?.isbn ?? doc.isbn ?? null,
+    title: it?.title ?? doc.title,
     authors: doc.authors ?? [],
     year: doc.year ?? null,
     publisher: doc.publisher ?? null,
-    description: doc.description ?? null,
+    description: (it ? it.description : doc.description) ?? null,
     categories: doc.categories ?? [],
     nytRank: doc.nytRank ?? null,
     nytWeeksOnList: doc.nytWeeksOnList ?? null,
@@ -77,9 +86,34 @@ function toResult(doc: StoredBook): MongoBookResult {
   };
 }
 
+const ITALIAN_OR_LEGACY_MONGO_FILTER = {
+  $or: [
+    { language: { $in: [null, "it"] } },
+    { "translations.it": { $exists: true } },
+  ],
+};
+const ITALIAN_OR_LEGACY_SEARCH_FILTER = {
+  compound: {
+    should: [
+      { equals: { path: "language", value: "it" } },
+      { exists: { path: "translations.it.isbn" } },
+    ],
+    minimumShouldMatch: 1,
+  },
+};
+
+function mongoDisplayFilter(preferredLanguage: PreferredLanguage) {
+  return preferredLanguage === "it" ? ITALIAN_OR_LEGACY_MONGO_FILTER : {};
+}
+
+function searchDisplayFilter(preferredLanguage: PreferredLanguage) {
+  return preferredLanguage === "it" ? [ITALIAN_OR_LEGACY_SEARCH_FILTER] : [];
+}
+
 export async function searchMongoBooks(
   query: string,
   page = 1,
+  preferredLanguage: PreferredLanguage = "it",
 ): Promise<MongoSearchPage> {
   const empty: MongoSearchPage = { items: [], totalCount: 0 };
 
@@ -95,9 +129,22 @@ export async function searchMongoBooks(
       .collection<StoredBook>(COLLECTION_NAME);
     const isbn = normalizeIsbn(trimmed);
     const words = trimmed.split(/\s+/).filter(Boolean);
+    const filter = searchDisplayFilter(preferredLanguage);
 
     const searchStage = isbn
-      ? { text: { query: isbn, path: ["isbn", "alternateIsbns"] } }
+      ? {
+          compound: {
+            must: [
+              {
+                text: {
+                  query: isbn,
+                  path: ["isbn", "alternateIsbns", "translations.it.isbn"],
+                },
+              },
+            ],
+            filter,
+          },
+        }
       : {
           compound: {
             must: words.map((word) => ({
@@ -105,10 +152,17 @@ export async function searchMongoBooks(
                 should: [
                   { autocomplete: { query: word, path: "title" } },
                   { autocomplete: { query: word, path: "authors" } },
+                  {
+                    autocomplete: {
+                      query: word,
+                      path: "translations.it.title",
+                    },
+                  },
                 ],
                 minimumShouldMatch: 1,
               },
             })),
+            filter,
           },
         };
 
@@ -132,15 +186,16 @@ export async function searchMongoBooks(
       ])
       .toArray();
 
-    return { items: docs.map(toResult), totalCount: meta?.count?.total ?? 0 };
+    return {
+      items: docs.map((doc) => toResult(doc, preferredLanguage)),
+      totalCount: meta?.count?.total ?? 0,
+    };
   } catch {
     return empty;
   }
 }
 
 const BROWSE_SORT_SPECS: Record<BrowseSortKey, Record<string, 1 | -1>> = {
-  // Missing/unrated books sort as null in MongoDB, which lands last in
-  // descending order — exactly what we want, rated books surface first.
   rating_desc: { olRating: -1 },
   title_asc: { title: 1 },
   title_desc: { title: -1 },
@@ -148,12 +203,10 @@ const BROWSE_SORT_SPECS: Record<BrowseSortKey, Record<string, 1 | -1>> = {
   year_asc: { year: 1 },
 };
 
-// Lists the whole catalog (no search query) rather than the autocomplete
-// index used by searchMongoBooks above, since sorting by rating/year/title
-// isn't something Atlas Search's relevance-ranked results support.
 export async function browseMongoBooks(
   sort: BrowseSortKey,
   page = 1,
+  preferredLanguage: PreferredLanguage = "it",
 ): Promise<MongoSearchPage> {
   const empty: MongoSearchPage = { items: [], totalCount: 0 };
 
@@ -164,20 +217,22 @@ export async function browseMongoBooks(
     const collection = client
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
+    const filter = mongoDisplayFilter(preferredLanguage);
 
     const [totalCount, docs] = await Promise.all([
-      // No filter, so the fast metadata-based estimate is accurate enough
-      // and avoids a full collection scan on every page load.
-      collection.estimatedDocumentCount(),
+      collection.countDocuments(filter),
       collection
-        .find({})
+        .find(filter)
         .sort(BROWSE_SORT_SPECS[sort])
         .skip((page - 1) * SEARCH_PAGE_SIZE)
         .limit(SEARCH_PAGE_SIZE)
         .toArray(),
     ]);
 
-    return { items: docs.map(toResult), totalCount };
+    return {
+      items: docs.map((doc) => toResult(doc, preferredLanguage)),
+      totalCount,
+    };
   } catch {
     return empty;
   }

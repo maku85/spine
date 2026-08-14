@@ -37,16 +37,48 @@ TASTEDIVE_API_KEY=...
 # APIs live). Without this key, search falls back to Open Library only
 # and the suggestions page stays empty with a message explaining why.
 MONGODB_URI=...
+
+# Only needed by the catalog-maintenance scripts below (not read by the
+# app itself): import-hardcover-lists.mts and import-hardcover-book-data.mts
+# use it to query Hardcover's GraphQL API.
+HARDCOVER_API_TOKEN=...
 ```
 
 The database schema lives in `supabase/migrations/`.
 
-## Importing books into MongoDB (scripts/import-google-books.mts)
+## The catalog data model
+
+Every book in the Mongo catalog is stored once, in whatever language it
+was originally found in (`title`/`description`/`isbn`/`language` at the
+document root). An Italian edition, when one exists, is an *optional*
+enrichment attached under `translations.it` (`isbn`/`title`/`description`
+of the oldest Italian edition actually found) — never a condition for the
+book to be catalogued at all. `language` unset means the pre-existing,
+bulk-imported catalog, which predates this field and was always Italian;
+it's treated the same as `language: "it"` everywhere. Every book keeps a
+single canonical edition, with any other known ISBN for it (any language)
+in `alternateIsbns` at the document root. The app only ever displays a
+book that's Italian by one of these two routes (primary fields or
+`translations.it`) — see `src/lib/mongo-books/search.ts`,
+`src/lib/lists/read.ts`, `src/lib/suggestions/read.ts`.
+
+The scripts below fall into three groups: **importing** new books directly
+(search-driven), **importing/updating lists** (NYT, Hardcover — write only
+to the `lists` collection), and **resolving/enriching** what's already
+catalogued. Turning a list entry into a catalog book is the job of
+`resolve-list-books.mts` alone, regardless of which list it came from.
+
+## Importing books into MongoDB (scripts/import-books.mts)
 
 A standalone script (separate from the app) that populates a MongoDB Atlas
-collection with Italian-language books fetched from the Google Books API
-(ISBN, title, authors, year, publisher, description, categories). Skips
-volumes without an ISBN. Requires in `.env.local`:
+collection with books fetched from the Google Books API (ISBN, title,
+authors, year, publisher, description, categories, language), searched
+across one or more languages (Italian and English by default — each
+language is queried separately with its own `langRestrict`). Skips volumes
+without an ISBN. A non-Italian book is inserted as-is; its Italian
+translation (if any) isn't looked up here — that's `resolve-list-books.mts`'s
+catalog-wide retry pass, run separately, since looking it up per candidate
+would be too costly for a wide-net search import. Requires in `.env.local`:
 
 ```
 MONGODB_URI=...
@@ -55,26 +87,30 @@ MONGODB_URI=...
 Usage:
 
 ```bash
-pnpm import-books                                       # default query
-pnpm import-books "subject:Fantascienza" "inauthor:Italo Calvino"
-pnpm import-books --max=400 "subject:Storia"
-pnpm import-books --dry-run "subject:Giallo"            # print without writing to Mongo
-pnpm import-books --order-by=newest "subject:Storia"    # relevance (default) or newest
+pnpm import-books                                        # default queries, Italian + English
+pnpm import-books --lang=it "subject:Fantascienza" "inauthor:Italo Calvino"
+pnpm import-books --lang=en --max=400 "inauthor:Ursula K. Le Guin"
+pnpm import-books --dry-run                              # print without writing to Mongo
+pnpm import-books --order-by=newest                       # relevance (default) or newest
 ```
 
 Writes to the `books_catalog` db, `books` collection (names configurable
 via `MONGODB_DB` / `MONGODB_COLLECTION`), upserting on the Google Books
-volume id so repeated runs are idempotent. It also stores Google's own
+volume id so repeated runs are idempotent, and keeping only one (the
+oldest-dated) edition per work — other ISBNs for the same work go into
+`alternateIsbns` instead of being discarded. It also stores Google's own
 `averageRating`/`ratingsCount`, but those turned out unreliable for most
 books (too few votes, even for famous titles) and aren't surfaced
-anywhere — see `scripts/import-open-library-ratings.mts` below for the
-rating source the app actually uses.
+anywhere — see `enrich-books.mts` below for the rating source the app
+actually uses.
+
+Scheduled daily via `.github/workflows/import-books.yml`.
 
 ## Search autocomplete index (scripts/create-search-index.mts)
 
 One-off script that creates the Atlas Search index the app's live search
 (`src/lib/mongo-books/search.ts`) uses for title/author autocomplete over
-the catalog imported by `import-google-books.mts`. Re-run it (after
+the catalog, including the `translations.it` fields. Re-run it (after
 deleting the existing index) if you change the index definition.
 
 ```bash
@@ -105,39 +141,16 @@ pnpm import-bookie --file=export.csv --email=you@example.com
 pnpm import-bookie --file=export.csv --email=you@example.com --limit=5  # test on a handful first
 ```
 
-## Importing Open Library ratings (scripts/import-open-library-ratings.mts)
-
-Enriches the Mongo catalog with Open Library's rating average and count,
-for books that don't have them yet. Runs on a small batch per invocation
-(150 books by default) rather than the whole catalog at once — Open
-Library explicitly asks that its APIs not be used as a bulk-data backend,
-so backfilling the existing catalog is spread across several days'
-scheduled runs instead of one big pass. Every checked book (whether a
-rating was found or not) gets an `olCheckedAt` timestamp so future runs
-don't re-check it.
-
-Match rate is real but modest: many Italian-market ISBNs simply aren't
-indexed on Open Library, so this only finds a rating for a fraction of
-books — but when it does, the data is meaningfully more reliable than
-Google Books' own ratings (usually hundreds of votes vs. often zero or a
-single one).
-
-```bash
-pnpm import-ratings                # check up to 150 not-yet-checked books
-pnpm import-ratings --max=50
-pnpm import-ratings --dry-run      # print without writing to Mongo
-```
-
-Scheduled daily via `.github/workflows/import-ratings.yml`.
-
 ## Aligning existing catalog data (scripts/enrich-books.mts)
 
 A manual, run-when-needed script (not scheduled) that improves books
-already sitting in the catalog rather than importing new ones — useful
-since a chunk of the data imported so far has a missing/English/too-short
-description, no known first-publish year, or an ISBN that isn't actually
-the original edition's. For each candidate it resolves the book against
-Open Library (by ISBN, falling back to alternate ISBNs, then to a
+already sitting in the catalog rather than importing new ones — scoped to
+books that are Italian in their primary fields (`language` unset or
+`"it"`; the pre-existing bulk-imported catalog plus anything explicitly
+Italian), since its Open Library lookup and description handling assume
+Italian content. Non-Italian books get their translation handled by
+`resolve-list-books.mts` instead. For each candidate it resolves the book
+against Open Library (by ISBN, falling back to alternate ISBNs, then to a
 normalized title+author search) and updates:
 
 - **Description** — replaced with Open Library's (Italian paragraphs
@@ -153,12 +166,18 @@ normalized title+author search) and updates:
   by another catalog entry. Every other known Italian ISBN for the work
   ends up in `alternateIsbns` either way, so ISBN search keeps working
   regardless of which edition a user scans/searches.
-- **Rating** — same `olRating`/`olRatingsCount`/`olWorkKey` fields as
-  `import-open-library-ratings.mts` above (this script's own resolution is
-  reused rather than calling that script separately).
+- **Rating** — Open Library's rating average/count (`olRating`/
+  `olRatingsCount`/`olWorkKey`), the source the app actually surfaces:
+  Google Books' own ratings turned out unreliable for most books (too few
+  votes, even for famous titles).
+- **English ISBN** — `englishIsbn`, a pointer used by
+  `import-hardcover-book-data.mts` below to look the book up on Hardcover.
 
-Each processed book gets an `enrichedAt` timestamp so re-runs only pick up
-books that haven't been aligned yet, unless `--force` is passed.
+Runs on a bounded batch per invocation (100 books by default) rather than
+the whole catalog at once — Open Library explicitly asks that its APIs
+not be used as a bulk-data backend. Each processed book gets an
+`enrichedAt` timestamp so re-runs only pick up books that haven't been
+aligned yet, unless `--force` is passed.
 
 ```bash
 pnpm enrich-books --dry-run              # report without writing to Mongo
@@ -167,26 +186,20 @@ pnpm enrich-books --force                # re-check books already aligned
 pnpm enrich-books --isbn=8804668237      # a single book, to sanity-check first
 ```
 
-## Importing NYT bestseller data into the catalog (scripts/import-nyt-bestsellers.mts)
+Scheduled daily via `.github/workflows/enrich-books.yml`.
 
-Enriches the Mongo `books` collection with New York Times bestseller
-signal — rank, rank last week, and weeks on the list — directly on each
-book document (`nytRank`/`nytRankLastWeek`/`nytWeeksOnList`/`nytListName`),
-for the lists in `scripts/data/nyt-lists.mts`. For each book: if it's
-already in the catalog (matched by ISBN, a known alternate ISBN, or
-normalized title+author) its NYT fields are updated in place; otherwise
-it's resolved against Google Books by ISBN and inserted as a new document.
-This is what the "Reading suggestions" page's NYT section, and the NYT
-badge on search results, read from.
+## Importing list data (scripts/import-nyt-bestsellers.mts, scripts/import-hardcover-lists.mts)
 
-NYT bestsellers are almost entirely American, English-language books,
-while the rest of the catalog is Italian-only (see the import script
-above) — a book without an Italian edition (yet) still gets imported in
-English rather than skipped, tagged `source: "nyt"` and `language` so it
-can be told apart later if needed.
+Both scripts fetch curated/bestseller lists from their respective source
+and upsert them into the Mongo `lists` collection (`{source, name, entries:
+[{isbn, title, author, position}]}`) — neither one writes to the `books`
+collection directly. Turning a list entry into an actual catalog book is
+`resolve-list-books.mts`'s job alone (below), so both sources feed the
+same pipeline.
 
-Respects NYT's free-tier rate limit (5 requests/minute) with a 13s pause
-between lists.
+`import-nyt-bestsellers.mts` covers the lists in `scripts/data/nyt-lists.mts`
+and respects NYT's free-tier rate limit (5 requests/minute) with a 13s
+pause between lists:
 
 ```bash
 pnpm import-nyt-bestsellers
@@ -195,3 +208,53 @@ pnpm import-nyt-bestsellers --dry-run   # print without writing to Mongo
 
 Scheduled weekly (Mondays) via `.github/workflows/import-nyt-bestsellers.yml`
 — NYT lists themselves only refresh once a week.
+
+`import-hardcover-lists.mts` pulls Hardcover's most-followed and featured
+public lists, keeping only ones that read as fiction — classified from
+each list's books' genre tags, with lists too small to classify kept
+rather than risk dropping a good one:
+
+```bash
+node --env-file=.env.local scripts/import-hardcover-lists.mts
+node --env-file=.env.local scripts/import-hardcover-lists.mts --max-lists=60 --dry-run
+```
+
+Not scheduled — run manually as needed.
+
+## Resolving list entries into catalog books (scripts/resolve-list-books.mts)
+
+Reads every list in the `lists` collection and, for each ISBN not yet in
+the catalog, inserts it as a new book in its original language (via Google
+Books) plus its Italian translation when Open Library has one (the oldest
+Italian edition Google Books actually has real data for). It also does a
+second, catalog-wide pass: retrying the Italian-translation lookup for
+*any* catalogued book still missing one — not just list-derived ones,
+since `import-books.mts` also produces non-Italian books outside of any
+list. Both passes cache negative/collision results (`listResolutionCheckedAt`
+on books, a `list_resolution_attempts` collection for still-uncatalogued
+ISBNs) so re-runs don't redo the same Open Library work.
+
+This is the heaviest script here (several sequential Open Library +
+Google Books calls per candidate), so it's meant to be run manually in
+bounded batches rather than scheduled:
+
+```bash
+pnpm resolve-list-books --dry-run --max=10
+pnpm resolve-list-books --max=30
+pnpm resolve-list-books --force           # ignore the 30-day staleness cache
+```
+
+## Importing series and mood tags (scripts/import-hardcover-book-data.mts)
+
+Enriches catalog books with series membership and mood tags from
+Hardcover, looked up by whichever non-Italian ISBN the book has on file
+(`isbn` directly for non-Italian-original books, `englishIsbn` for
+legacy Italian ones enriched by `enrich-books.mts`). Re-checks stale
+entries (30 days) unless `--force` is passed.
+
+```bash
+node --env-file=.env.local scripts/import-hardcover-book-data.mts --dry-run
+node --env-file=.env.local scripts/import-hardcover-book-data.mts --max=50
+```
+
+Not scheduled — run manually as needed.

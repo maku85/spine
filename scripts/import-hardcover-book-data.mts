@@ -14,11 +14,18 @@ const MAX_MOOD_TAGS = 5;
 type StoredBook = {
   _id: string;
   title: string;
+  isbn?: string | null;
+  language?: string | null;
   englishIsbn?: string | null;
   series?: Array<{ name: string; position: number | null }>;
   moodTags?: string[];
   hardcoverCheckedAt?: Date | null;
 };
+
+function lookupIsbn(book: StoredBook): string | null {
+  if (book.language != null && book.language !== "it") return book.isbn ?? null;
+  return book.englishIsbn ?? null;
+}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -172,24 +179,39 @@ async function main() {
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
 
-    const query: Record<string, unknown> = {
-      englishIsbn: { $exists: true, $ne: null },
+    const sourceFilter = {
+      $or: [
+        { englishIsbn: { $exists: true, $ne: null } },
+        {
+          language: { $exists: true, $nin: [null, "it"] },
+          isbn: { $exists: true, $ne: null },
+        },
+      ],
     };
-    if (!force) {
-      query.$or = [
-        { hardcoverCheckedAt: { $exists: false } },
-        { hardcoverCheckedAt: { $lt: new Date(Date.now() - STALE_AFTER_MS) } },
-      ];
-    }
+    const staleFilter = force
+      ? {}
+      : {
+          $or: [
+            { hardcoverCheckedAt: { $exists: false } },
+            {
+              hardcoverCheckedAt: {
+                $lt: new Date(Date.now() - STALE_AFTER_MS),
+              },
+            },
+          ],
+        };
+    const query: Record<string, unknown> = {
+      $and: [sourceFilter, staleFilter],
+    };
 
     const candidates = await collection.find(query).limit(max).toArray();
     console.log(`${candidates.length} libri da controllare in questo run.`);
 
     for (const book of candidates) {
-      const data = await fetchSeriesAndMoodTags(
-        hardcoverToken,
-        book.englishIsbn as string,
-      );
+      const isbn = lookupIsbn(book);
+      if (!isbn) continue;
+
+      const data = await fetchSeriesAndMoodTags(hardcoverToken, isbn);
       await sleep(REQUEST_DELAY_MS);
 
       if (!data) {

@@ -1,15 +1,3 @@
-// Importa libri in italiano dalle API di Google Books in MongoDB Atlas.
-//
-// Uso:
-//   node --env-file=.env.local scripts/import-google-books.mts [query...] [opzioni]
-//   pnpm import-books [query...] [opzioni]
-//
-// Esempi:
-//   pnpm import-books "romanzo fantascienza" "romanzo giallo"
-//   pnpm import-books --max=400 "inauthor:Italo Calvino"
-//   pnpm import-books --order-by=newest "romanzo storico"
-//
-
 import { MongoClient } from "mongodb";
 import { normalizeTitle } from "../src/lib/text.ts";
 
@@ -19,14 +7,29 @@ const REQUEST_DELAY_MS = 250;
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
 
-const DEFAULT_QUERIES = [
-  "romanzo",
-  "romanzo fantascienza",
-  "romanzo fantasy",
-  "romanzo giallo",
-  "romanzo storico",
-  "racconti",
-];
+const DEFAULT_QUERIES_BY_LANG: Record<string, string[]> = {
+  it: [
+    "romanzo",
+    "romanzo fantascienza",
+    "romanzo fantasy",
+    "romanzo giallo",
+    "romanzo storico",
+    "racconti",
+  ],
+  en: [
+    "novel",
+    "science fiction novel",
+    "fantasy novel",
+    "mystery novel",
+    "historical novel",
+    "short stories",
+  ],
+};
+
+const STUDY_GUIDE_PATTERNS: Record<string, RegExp> = {
+  it: /analisi del libro|riassunto|guida (alla lettura|allo studio)|scheda (di lettura|libro)/i,
+  en: /study guide|book summary|summary of|sparknotes|reading guide|literature guide/i,
+};
 
 type GoogleBooksVolume = {
   id: string;
@@ -58,18 +61,23 @@ type ImportedBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  language: string;
   averageRating: number | null;
   ratingsCount: number | null;
   workKey: string;
 };
 
-type StoredBook = ImportedBook & { alternateIsbns: string[] };
+type StoredBook = ImportedBook & {
+  alternateIsbns: string[];
+  source: string;
+};
 
 function parseArgs(argv: string[]) {
   const queries: string[] = [];
   let maxPerQuery = 200;
   let dryRun = false;
   let orderBy: "relevance" | "newest" = "relevance";
+  let langs = ["it", "en"];
 
   for (const arg of argv) {
     if (arg.startsWith("--max=")) {
@@ -84,17 +92,26 @@ function parseArgs(argv: string[]) {
         );
       }
       orderBy = value;
+    } else if (arg.startsWith("--lang=")) {
+      langs = arg
+        .slice("--lang=".length)
+        .split(",")
+        .map((lang) => lang.trim())
+        .filter(Boolean);
     } else {
       queries.push(arg);
     }
   }
 
-  return {
-    queries: queries.length > 0 ? queries : DEFAULT_QUERIES,
-    maxPerQuery,
-    dryRun,
-    orderBy,
-  };
+  for (const lang of langs) {
+    if (!(lang in DEFAULT_QUERIES_BY_LANG) && queries.length === 0) {
+      throw new Error(
+        `Nessuna query predefinita per la lingua "${lang}": passa query esplicite.`,
+      );
+    }
+  }
+
+  return { queries, maxPerQuery, dryRun, orderBy, langs };
 }
 
 function sleep(ms: number) {
@@ -129,16 +146,17 @@ function isNarrativa(categories: string[]): boolean {
   return categories.some((category) => /fiction|narrativa/i.test(category));
 }
 
-function isStudyGuide(title: string): boolean {
-  return /analisi del libro|riassunto|guida (alla lettura|allo studio)|scheda (di lettura|libro)/i.test(
-    title,
-  );
+function isStudyGuide(title: string, lang: string): boolean {
+  return STUDY_GUIDE_PATTERNS[lang]?.test(title) ?? false;
 }
 
-function toImportedBook(volume: GoogleBooksVolume): ImportedBook | null {
+function toImportedBook(
+  volume: GoogleBooksVolume,
+  lang: string,
+): ImportedBook | null {
   const info = volume.volumeInfo;
-  if (!info?.title || info.language !== "it") return null;
-  if (isStudyGuide(info.title)) return null;
+  if (!info?.title || info.language !== lang) return null;
+  if (isStudyGuide(info.title, lang)) return null;
 
   const isbn = extractIsbn(info.industryIdentifiers);
   if (!isbn) return null;
@@ -158,6 +176,7 @@ function toImportedBook(volume: GoogleBooksVolume): ImportedBook | null {
     publisher: info.publisher ?? null,
     description: info.description ?? null,
     categories,
+    language: lang,
     averageRating: info.averageRating ?? null,
     ratingsCount: info.ratingsCount ?? null,
     workKey,
@@ -171,13 +190,14 @@ const MAX_RETRY_DELAY_MS = 20_000;
 
 async function fetchPage(
   query: string,
+  lang: string,
   startIndex: number,
   orderBy: "relevance" | "newest",
   apiKey: string | undefined,
 ): Promise<GoogleBooksResponse> {
   const params = new URLSearchParams({
     q: query,
-    langRestrict: "it",
+    langRestrict: lang,
     printType: "books",
     orderBy,
     startIndex: String(startIndex),
@@ -211,8 +231,9 @@ async function fetchPage(
   }
 }
 
-async function* fetchItalianBooks(
+async function* fetchBooksForLanguage(
   query: string,
+  lang: string,
   maxPerQuery: number,
   orderBy: "relevance" | "newest",
   apiKey: string | undefined,
@@ -222,14 +243,14 @@ async function* fetchItalianBooks(
   let totalItems = Number.POSITIVE_INFINITY;
 
   while (startIndex < totalItems && fetched < maxPerQuery) {
-    const page = await fetchPage(query, startIndex, orderBy, apiKey);
+    const page = await fetchPage(query, lang, startIndex, orderBy, apiKey);
     totalItems = page.totalItems ?? 0;
 
     const items = page.items ?? [];
     if (items.length === 0) break;
 
     for (const volume of items) {
-      const book = toImportedBook(volume);
+      const book = toImportedBook(volume, lang);
       if (book) yield book;
     }
 
@@ -240,7 +261,7 @@ async function* fetchItalianBooks(
 }
 
 async function main() {
-  const { queries, maxPerQuery, dryRun, orderBy } = parseArgs(
+  const { queries, maxPerQuery, dryRun, orderBy, langs } = parseArgs(
     process.argv.slice(2),
   );
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
@@ -270,61 +291,75 @@ async function main() {
 
     await collection?.createIndex({ workKey: 1 });
 
-    for (const query of queries) {
-      console.log(`Query: "${query}"`);
+    for (const lang of langs) {
+      const langQueries =
+        queries.length > 0 ? queries : DEFAULT_QUERIES_BY_LANG[lang];
 
-      for await (const book of fetchItalianBooks(
-        query,
-        maxPerQuery,
-        orderBy,
-        apiKey,
-      )) {
-        if (dryRun || !collection) {
-          console.log(
-            `  [dry-run] (${book.isbn}) ${book.title} — ${book.authors.join(", ") || "?"}`,
-          );
-          imported += 1;
-          continue;
-        }
+      for (const query of langQueries) {
+        console.log(`Query [${lang}]: "${query}"`);
 
-        const sameEdition = await collection.findOne({ _id: book._id });
-        if (sameEdition) {
-          await collection.updateOne({ _id: book._id }, { $set: book });
-          refreshed += 1;
-          continue;
-        }
-
-        const existingForWork = await collection.findOne({
-          workKey: book.workKey,
-        });
-        if (!existingForWork) {
-          await collection.insertOne({ ...book, alternateIsbns: [] });
-          imported += 1;
-          console.log(`  + ${book.title} (${book.year ?? "anno ignoto"})`);
-        } else if (isEarlierEdition(book.year, existingForWork.year)) {
-          const carriedIsbns = new Set(
-            [
-              existingForWork.isbn,
-              ...(existingForWork.alternateIsbns ?? []),
-            ].filter((isbn) => isbn && isbn !== book.isbn),
-          );
-          await collection.deleteOne({ _id: existingForWork._id });
-          await collection.insertOne({
-            ...book,
-            alternateIsbns: [...carriedIsbns],
-          });
-          imported += 1;
-          console.log(
-            `  ~ ${book.title}: ${existingForWork.year ?? "?"} → ${book.year ?? "?"} (edizione più vecchia trovata)`,
-          );
-        } else {
-          if (book.isbn !== existingForWork.isbn) {
-            await collection.updateOne(
-              { _id: existingForWork._id },
-              { $addToSet: { alternateIsbns: book.isbn } },
+        for await (const book of fetchBooksForLanguage(
+          query,
+          lang,
+          maxPerQuery,
+          orderBy,
+          apiKey,
+        )) {
+          if (dryRun || !collection) {
+            console.log(
+              `  [dry-run] (${book.isbn}) ${book.title} — ${book.authors.join(", ") || "?"}`,
             );
+            imported += 1;
+            continue;
           }
-          skippedEditions += 1;
+
+          const sameEdition = await collection.findOne({ _id: book._id });
+          if (sameEdition) {
+            await collection.updateOne(
+              { _id: book._id },
+              { $set: { ...book, source: "search" } },
+            );
+            refreshed += 1;
+            continue;
+          }
+
+          const existingForWork = await collection.findOne({
+            workKey: book.workKey,
+          });
+          if (!existingForWork) {
+            await collection.insertOne({
+              ...book,
+              alternateIsbns: [],
+              source: "search",
+            });
+            imported += 1;
+            console.log(`  + ${book.title} (${book.year ?? "anno ignoto"})`);
+          } else if (isEarlierEdition(book.year, existingForWork.year)) {
+            const carriedIsbns = new Set(
+              [
+                existingForWork.isbn,
+                ...(existingForWork.alternateIsbns ?? []),
+              ].filter((isbn) => isbn && isbn !== book.isbn),
+            );
+            await collection.deleteOne({ _id: existingForWork._id });
+            await collection.insertOne({
+              ...book,
+              alternateIsbns: [...carriedIsbns],
+              source: "search",
+            });
+            imported += 1;
+            console.log(
+              `  ~ ${book.title}: ${existingForWork.year ?? "?"} → ${book.year ?? "?"} (edizione più vecchia trovata)`,
+            );
+          } else {
+            if (book.isbn !== existingForWork.isbn) {
+              await collection.updateOne(
+                { _id: existingForWork._id },
+                { $addToSet: { alternateIsbns: book.isbn } },
+              );
+            }
+            skippedEditions += 1;
+          }
         }
       }
     }

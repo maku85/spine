@@ -2,6 +2,7 @@
 
 import { getMongoClient } from "@/lib/mongo/client";
 import type { SuggestedBook } from "@/lib/suggestions/read";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
@@ -22,6 +23,8 @@ type ListDoc = {
   entries: ListEntry[];
 };
 
+type Translation = { isbn: string; title: string; description: string | null };
+
 type StoredBook = {
   _id: string;
   isbn: string | null;
@@ -33,9 +36,23 @@ type StoredBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  language?: string | null;
+  translations?: { it?: Translation };
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
 };
+
+function isDisplayable(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): boolean {
+  if (preferredLanguage === "all") return true;
+  return (
+    doc.language == null ||
+    doc.language === "it" ||
+    Boolean(doc.translations?.it)
+  );
+}
 
 export type SuggestedListEntry = {
   book: SuggestedBook;
@@ -50,15 +67,19 @@ export type SuggestedList = {
   entries: SuggestedListEntry[];
 };
 
-function toSuggestedBook(doc: StoredBook): SuggestedBook {
+function toSuggestedBook(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): SuggestedBook {
+  const it = preferredLanguage === "it" ? doc.translations?.it : undefined;
   return {
     mongoId: doc._id,
-    isbn: doc.isbn ?? null,
-    title: doc.title,
+    isbn: it?.isbn ?? doc.isbn ?? null,
+    title: it?.title ?? doc.title,
     authors: doc.authors ?? [],
     year: doc.year ?? null,
     publisher: doc.publisher ?? null,
-    description: doc.description ?? null,
+    description: (it ? it.description : doc.description) ?? null,
     categories: doc.categories ?? [],
     nytRank: null,
     nytWeeksOnList: null,
@@ -70,7 +91,9 @@ function toSuggestedBook(doc: StoredBook): SuggestedBook {
   };
 }
 
-export async function fetchNotableLists(): Promise<SuggestedList[]> {
+export async function fetchNotableLists(
+  preferredLanguage: PreferredLanguage = "it",
+): Promise<SuggestedList[]> {
   const client = getMongoClient();
   if (!client) return [];
 
@@ -92,6 +115,7 @@ export async function fetchNotableLists(): Promise<SuggestedList[]> {
           { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },
           { englishIsbn: { $in: allIsbns } },
+          { "translations.it.isbn": { $in: allIsbns } },
         ],
       })
       .toArray();
@@ -101,6 +125,8 @@ export async function fetchNotableLists(): Promise<SuggestedList[]> {
       if (book.isbn) byIsbn.set(book.isbn, book);
       for (const alt of book.alternateIsbns ?? []) byIsbn.set(alt, book);
       if (book.englishIsbn) byIsbn.set(book.englishIsbn, book);
+      if (book.translations?.it?.isbn)
+        byIsbn.set(book.translations.it.isbn, book);
     }
 
     return lists
@@ -113,10 +139,15 @@ export async function fetchNotableLists(): Promise<SuggestedList[]> {
         const entries: SuggestedListEntry[] = [];
         for (const entry of sortedEntries) {
           const match = byIsbn.get(entry.isbn);
-          if (!match || seenBookIds.has(match._id)) continue;
+          if (
+            !match ||
+            seenBookIds.has(match._id) ||
+            !isDisplayable(match, preferredLanguage)
+          )
+            continue;
           seenBookIds.add(match._id);
           entries.push({
-            book: toSuggestedBook(match),
+            book: toSuggestedBook(match, preferredLanguage),
             position: entry.position,
           });
         }

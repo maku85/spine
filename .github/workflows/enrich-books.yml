@@ -1,4 +1,4 @@
-name: Import Open Library ratings
+name: Enrich catalog books
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  import-ratings:
+  enrich-books:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Import Open Library ratings
+      - name: Enrich books with Open Library data
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        run: node scripts/import-open-library-ratings.mts --max=150
+        run: node scripts/enrich-books.mts --max=150

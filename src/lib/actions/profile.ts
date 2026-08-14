@@ -22,6 +22,7 @@ const ProfileSchema = z.object({
     .union([z.url({ error: "Inserisci un URL valido." }), z.literal("")])
     .optional()
     .transform((value) => value || null),
+  language: z.enum(["it", "all"]),
 });
 
 export type ProfileFormState = { error: string } | undefined;
@@ -40,13 +41,14 @@ export async function updateProfile(
     username: formData.get("username"),
     displayName: formData.get("displayName"),
     avatarUrl: formData.get("avatarUrl"),
+    language: formData.get("language"),
   });
 
   if (!validated.success) {
     return { error: validated.error.issues[0].message };
   }
 
-  const { username, displayName, avatarUrl } = validated.data;
+  const { username, displayName, avatarUrl, language } = validated.data;
 
   const { error } = await supabase
     .from("profiles")
@@ -54,6 +56,7 @@ export async function updateProfile(
       username,
       display_name: displayName,
       avatar_url: avatarUrl,
+      language,
     })
     .eq("id", user.id);
 

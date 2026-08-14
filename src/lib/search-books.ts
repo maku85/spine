@@ -9,6 +9,7 @@ import {
 import { searchOpenLibrary } from "@/lib/open-library/search";
 import type { OLSearchResult } from "@/lib/open-library/types";
 import { SEARCH_PAGE_SIZE } from "@/lib/search-books-constants";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
 
 export type SearchItem =
   | {
@@ -43,8 +44,9 @@ export type SearchResultsPage = {
 export async function searchBooks(
   query: string,
   page = 1,
+  preferredLanguage: PreferredLanguage = "it",
 ): Promise<SearchResultsPage> {
-  const mongoPage = await searchMongoBooks(query, page);
+  const mongoPage = await searchMongoBooks(query, page, preferredLanguage);
   if (mongoPage.totalCount > 0) {
     return {
       items: mongoPage.items.map((book) => ({
@@ -82,8 +84,9 @@ export async function searchBooks(
 export async function browseBooks(
   sort: BrowseSortKey,
   page = 1,
+  preferredLanguage: PreferredLanguage = "it",
 ): Promise<SearchResultsPage> {
-  const mongoPage = await browseMongoBooks(sort, page);
+  const mongoPage = await browseMongoBooks(sort, page, preferredLanguage);
   return {
     items: mongoPage.items.map((book) => ({
       source: "mongo" as const,

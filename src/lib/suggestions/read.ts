@@ -1,6 +1,7 @@
 "use server";
 
 import { getMongoClient } from "@/lib/mongo/client";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
 const COLLECTION_NAME = process.env.MONGODB_COLLECTION ?? "books";
@@ -25,6 +26,8 @@ export type SuggestedBook = {
   series: Array<{ name: string; position: number | null }>;
 };
 
+type Translation = { isbn: string; title: string; description: string | null };
+
 type StoredBook = {
   _id: string;
   isbn: string | null;
@@ -34,6 +37,8 @@ type StoredBook = {
   publisher: string | null;
   description: string | null;
   categories: string[];
+  language?: string | null;
+  translations?: { it?: Translation };
   nytRank?: number;
   nytWeeksOnList?: number;
   nytListName?: string;
@@ -43,15 +48,19 @@ type StoredBook = {
   series?: Array<{ name: string; position: number | null }>;
 };
 
-function toSuggestedBook(doc: StoredBook): SuggestedBook {
+function toSuggestedBook(
+  doc: StoredBook,
+  preferredLanguage: PreferredLanguage,
+): SuggestedBook {
+  const it = preferredLanguage === "it" ? doc.translations?.it : undefined;
   return {
     mongoId: doc._id,
-    isbn: doc.isbn ?? null,
-    title: doc.title,
+    isbn: it?.isbn ?? doc.isbn ?? null,
+    title: it?.title ?? doc.title,
     authors: doc.authors ?? [],
     year: doc.year ?? null,
     publisher: doc.publisher ?? null,
-    description: doc.description ?? null,
+    description: (it ? it.description : doc.description) ?? null,
     categories: doc.categories ?? [],
     nytRank: doc.nytRank ?? null,
     nytWeeksOnList: doc.nytWeeksOnList ?? null,
@@ -63,7 +72,9 @@ function toSuggestedBook(doc: StoredBook): SuggestedBook {
   };
 }
 
-export async function fetchTopRatedBooks(): Promise<SuggestedBook[]> {
+export async function fetchTopRatedBooks(
+  preferredLanguage: PreferredLanguage = "it",
+): Promise<SuggestedBook[]> {
   const client = getMongoClient();
   if (!client) return [];
 
@@ -71,12 +82,24 @@ export async function fetchTopRatedBooks(): Promise<SuggestedBook[]> {
     const collection = client
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
+    const displayFilter =
+      preferredLanguage === "it"
+        ? {
+            $or: [
+              { language: { $in: [null, "it"] } },
+              { "translations.it": { $exists: true } },
+            ],
+          }
+        : {};
     const docs = await collection
-      .find({ olRatingsCount: { $gte: MIN_RATINGS_COUNT } })
+      .find({
+        olRatingsCount: { $gte: MIN_RATINGS_COUNT },
+        ...displayFilter,
+      })
       .sort({ olRating: -1 })
       .toArray();
 
-    return docs.map(toSuggestedBook);
+    return docs.map((doc) => toSuggestedBook(doc, preferredLanguage));
   } catch {
     return [];
   }

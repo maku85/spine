@@ -1,7 +1,5 @@
-// Hand-written to match supabase/migrations/*.sql until a real Supabase
-// project is linked. Regenerate with:
-//   npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts
 export type ReadingStatus = "wishlist" | "to_read" | "reading" | "read";
+export type PreferredLanguage = "it" | "all";
 
 export type Database = {
   public: {
@@ -76,6 +74,7 @@ export type Database = {
           username: string;
           display_name: string | null;
           avatar_url: string | null;
+          language: PreferredLanguage;
           created_at: string;
           updated_at: string;
         };
@@ -84,6 +83,7 @@ export type Database = {
           username: string;
           display_name?: string | null;
           avatar_url?: string | null;
+          language?: PreferredLanguage;
           created_at?: string;
           updated_at?: string;
         };
