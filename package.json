@@ -14,7 +14,8 @@
     "import-ratings": "node --env-file=.env.local scripts/import-open-library-ratings.mts",
     "import-nyt-bestsellers": "node --env-file=.env.local scripts/import-nyt-bestsellers.mts",
     "enrich-books": "node --env-file=.env.local scripts/enrich-books.mts",
-    "import-hardcover-lists": "node --env-file=.env.local scripts/import-hardcover-lists.mts"
+    "import-hardcover-lists": "node --env-file=.env.local scripts/import-hardcover-lists.mts",
+    "resolve-list-books": "node --env-file=.env.local scripts/resolve-list-books.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
