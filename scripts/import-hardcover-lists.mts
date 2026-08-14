@@ -7,6 +7,7 @@ const REQUEST_DELAY_MS = 800;
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 4;
 const RETRY_BASE_DELAY_MS = 800;
+const REQUEST_TIMEOUT_MS = 15_000;
 const MIN_LIST_FOLLOWERS = 1;
 const MAX_BOOKS_PER_LIST = 300;
 
@@ -49,14 +50,31 @@ async function queryHardcover(
   variables: Record<string, unknown>,
 ): Promise<unknown> {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(HARDCOVER_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-      },
-      body: JSON.stringify({ query, variables }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(HARDCOVER_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token.startsWith("Bearer ")
+            ? token
+            : `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      if (attempt >= MAX_RETRIES) {
+        console.warn("  Hardcover: nessuna risposta (timeout), salto.");
+        return null;
+      }
+      const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+      console.warn(
+        `  Hardcover: nessuna risposta (tentativo ${attempt + 1}/${MAX_RETRIES}), riprovo tra ${delay}ms...`,
+      );
+      await sleep(delay);
+      continue;
+    }
 
     if (res.ok) return res.json();
 
