@@ -13,6 +13,7 @@ const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 4;
 const RETRY_BASE_DELAY_MS = 500;
 const STALE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 type StoredBook = {
   _id: string;
@@ -64,7 +65,10 @@ function parseArgs(argv: string[]) {
 
 async function fetchOpenLibrary(url: string): Promise<unknown> {
   try {
-    const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    const res = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -77,7 +81,21 @@ async function fetchWithRetry(
   label: string,
 ): Promise<Response | null> {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      if (attempt >= MAX_RETRIES) {
+        console.warn(`  ${label}: nessuna risposta (timeout), salto.`);
+        return null;
+      }
+      const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+      await sleep(delay);
+      continue;
+    }
+
     if (res.ok) return res;
     if (res.status === 404) return null;
 
@@ -264,10 +282,7 @@ async function main() {
       ).values(),
     ].slice(0, max);
 
-    // Case A: isbns with no catalog match at all.
-    const unmatchedIsbns = allIsbns
-      .filter((isbn) => !bookByIsbn.has(isbn))
-      .slice(0, max * 3); // over-fetch since the "recently attempted" filter below thins this out
+    const unmatchedIsbns = allIsbns.filter((isbn) => !bookByIsbn.has(isbn));
 
     const attemptDocs = force
       ? []
@@ -321,6 +336,12 @@ async function main() {
         console.log(
           `  · ${stub.title}: ${resolved.isbn} già presente su un altro libro, salto`,
         );
+        if (!dryRun) {
+          await booksCollection.updateOne(
+            { _id: stub._id },
+            { $set: { listResolutionCheckedAt: new Date() } },
+          );
+        }
         continue;
       }
 
@@ -385,6 +406,13 @@ async function main() {
         console.log(
           `  · ${entry.title}: ${resolved.isbn} già presente in catalogo, salto`,
         );
+        if (!dryRun) {
+          await attemptsCollection.updateOne(
+            { _id: isbn },
+            { $set: { checkedAt: new Date() } },
+            { upsert: true },
+          );
+        }
         continue;
       }
 
