@@ -3,6 +3,7 @@ import { curateGenres } from "../src/lib/genres.ts";
 import { isItalian } from "../src/lib/language.ts";
 import { normalizeTitle } from "../src/lib/text.ts";
 import {
+  computeWorkKey,
   fetchGoogleBooksByIsbn,
   type Translation,
 } from "./lib/catalog-upsert.mts";
@@ -15,20 +16,15 @@ const MIN_DESCRIPTION_LENGTH = 60;
 
 type StoredBook = {
   _id: string;
-  isbn: string | null;
-  title: string;
   authors: string[];
   year: number | null;
-  description: string | null;
   categories: string[];
-  language?: string | null;
   alternateIsbns?: string[];
+  translations?: { it?: Translation; en?: Translation };
   olWorkKey?: string | null;
-  olRating?: number | null;
-  olRatingsCount?: number | null;
-  olCheckedAt?: Date;
+  rating?: number | null;
+  ratingsCount?: number | null;
   enrichedAt?: Date;
-  translations?: { en?: Translation };
 };
 
 type OLWorkMatch = {
@@ -145,7 +141,8 @@ async function findWorkByTitleAuthor(
 }
 
 async function resolveWork(book: StoredBook): Promise<OLWorkMatch | null> {
-  const candidateIsbns = [book.isbn, ...(book.alternateIsbns ?? [])].filter(
+  const italian = book.translations?.it;
+  const candidateIsbns = [italian?.isbn, ...(book.alternateIsbns ?? [])].filter(
     (value): value is string => Boolean(value),
   );
 
@@ -155,7 +152,10 @@ async function resolveWork(book: StoredBook): Promise<OLWorkMatch | null> {
     if (match) return match;
   }
 
-  const byTitle = await findWorkByTitleAuthor(book.title, book.authors[0]);
+  const byTitle = await findWorkByTitleAuthor(
+    italian?.title ?? "",
+    book.authors[0],
+  );
   await sleep(REQUEST_DELAY_MS);
   return byTitle;
 }
@@ -268,12 +268,12 @@ async function main() {
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
 
-    const languageFilter = { language: { $in: [null, "it"] } };
+    const italianFilter = { "translations.it": { $exists: true } };
     const query = isbn
-      ? { isbn, ...languageFilter }
+      ? { "translations.it.isbn": isbn }
       : force
-        ? languageFilter
-        : { enrichedAt: { $exists: false }, ...languageFilter };
+        ? italianFilter
+        : { enrichedAt: { $exists: false }, ...italianFilter };
 
     const candidates = await collection
       .find(query)
@@ -283,11 +283,14 @@ async function main() {
     console.log(`${candidates.length} libri da allineare in questo run.`);
 
     for (const book of candidates) {
+      const italian = book.translations?.it;
+      if (!italian) continue;
+
       const work = await resolveWork(book);
 
       if (!work) {
         notFound += 1;
-        console.log(`  ✗ ${book.title}: non trovato su Open Library`);
+        console.log(`  ✗ ${italian.title}: non trovato su Open Library`);
         if (!dryRun) {
           await collection.updateOne(
             { _id: book._id },
@@ -307,7 +310,7 @@ async function main() {
       ).filter((edition) => hasItalianIsbnPrefix(edition.isbn as string));
       const changes: string[] = [];
 
-      const currentDescription = book.description?.trim() ?? "";
+      const currentDescription = italian.description?.trim() ?? "";
       const currentIsGood =
         currentDescription.length >= MIN_DESCRIPTION_LENGTH &&
         isItalian(currentDescription);
@@ -342,18 +345,16 @@ async function main() {
 
       const knownIsbns = new Set(
         [
-          book.isbn,
+          italian.isbn,
           ...(book.alternateIsbns ?? []),
           ...editions.map((edition) => edition.isbn),
         ].filter((value): value is string => Boolean(value)),
       );
 
       const isSameEdition =
-        earliest?.isbn &&
-        book.isbn &&
-        toIsbn13(earliest.isbn) === toIsbn13(book.isbn);
+        earliest?.isbn && toIsbn13(earliest.isbn) === toIsbn13(italian.isbn);
 
-      let newIsbn = book.isbn;
+      let newIsbn = italian.isbn;
       if (
         earliest?.isbn &&
         !isSameEdition &&
@@ -361,12 +362,16 @@ async function main() {
       ) {
         const collision = await collection.findOne({
           _id: { $ne: book._id },
-          $or: [{ isbn: earliest.isbn }, { alternateIsbns: earliest.isbn }],
+          $or: [
+            { alternateIsbns: earliest.isbn },
+            { "translations.it.isbn": earliest.isbn },
+            { "translations.en.isbn": earliest.isbn },
+          ],
         });
         if (!collision) {
           newIsbn = earliest.isbn;
           isbnSwapped += 1;
-          changes.push(`isbn ${book.isbn ?? "?"} → ${newIsbn}`);
+          changes.push(`isbn ${italian.isbn} → ${newIsbn}`);
         }
       }
 
@@ -389,6 +394,10 @@ async function main() {
             isbn: edition.isbn,
             title: match.title,
             description: match.description,
+            workKey: computeWorkKey(
+              match.title,
+              match.authors[0] ?? book.authors[0],
+            ),
           };
           englishTranslationsFound += 1;
           changes.push(
@@ -402,8 +411,8 @@ async function main() {
 
       console.log(
         changes.length > 0
-          ? `  ✓ ${book.title}: ${changes.join(", ")}`
-          : `  · ${book.title}: nessuna modifica necessaria`,
+          ? `  ✓ ${italian.title}: ${changes.join(", ")}`
+          : `  · ${italian.title}: nessuna modifica necessaria`,
       );
 
       if (!dryRun) {
@@ -412,17 +421,16 @@ async function main() {
           {
             $set: {
               ...(useDescription
-                ? { description }
+                ? { "translations.it.description": description }
                 : clearDescription
-                  ? { description: null }
+                  ? { "translations.it.description": null }
                   : {}),
               ...(useYear ? { year: work.firstPublishYear } : {}),
-              isbn: newIsbn,
+              "translations.it.isbn": newIsbn,
               alternateIsbns: newAlternateIsbns,
               olWorkKey: work.workKey,
-              olRating: rating.average,
-              olRatingsCount: rating.count,
-              olCheckedAt: new Date(),
+              rating: rating.average,
+              ratingsCount: rating.count,
               enrichedAt: new Date(),
               ...(englishTranslation
                 ? { "translations.en": englishTranslation }

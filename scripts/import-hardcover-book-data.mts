@@ -13,17 +13,19 @@ const MAX_MOOD_TAGS = 5;
 
 type StoredBook = {
   _id: string;
-  title: string;
-  isbn?: string | null;
-  language?: string | null;
-  translations?: { en?: { isbn: string } };
+  translations?: { it?: { title: string }; en?: { isbn: string } };
   series?: Array<{ name: string; position: number | null }>;
   moodTags?: string[];
   hardcoverCheckedAt?: Date | null;
 };
 
+function labelOf(book: StoredBook): string {
+  return (
+    book.translations?.it?.title ?? book.translations?.en?.isbn ?? book._id
+  );
+}
+
 function lookupIsbn(book: StoredBook): string | null {
-  if (book.language != null && book.language !== "it") return book.isbn ?? null;
   return book.translations?.en?.isbn ?? null;
 }
 
@@ -180,13 +182,7 @@ async function main() {
       .collection<StoredBook>(COLLECTION_NAME);
 
     const sourceFilter = {
-      $or: [
-        { "translations.en.isbn": { $exists: true, $ne: null } },
-        {
-          language: { $exists: true, $nin: [null, "it"] },
-          isbn: { $exists: true, $ne: null },
-        },
-      ],
+      "translations.en.isbn": { $exists: true, $ne: null },
     };
     const staleFilter = force
       ? {}
@@ -216,7 +212,7 @@ async function main() {
 
       if (!data) {
         notFound += 1;
-        console.log(`  ✗ ${book.title}: non trovato su Hardcover`);
+        console.log(`  ✗ ${labelOf(book)}: non trovato su Hardcover`);
         if (!dryRun) {
           await collection.updateOne(
             { _id: book._id },
@@ -234,7 +230,7 @@ async function main() {
         .map((s) => `${s.name}${s.position ? ` #${s.position}` : ""}`)
         .join(", ");
       console.log(
-        `  ${data.series.length || data.moodTags.length ? "✓" : "·"} ${book.title}${
+        `  ${data.series.length || data.moodTags.length ? "✓" : "·"} ${labelOf(book)}${
           seriesLabel ? ` — ${seriesLabel}` : ""
         }${data.moodTags.length ? ` [${data.moodTags.join(", ")}]` : ""}`,
       );

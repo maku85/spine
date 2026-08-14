@@ -98,11 +98,17 @@ Writes to the `books_catalog` db, `books` collection (names configurable
 via `MONGODB_DB` / `MONGODB_COLLECTION`), upserting on the Google Books
 volume id so repeated runs are idempotent, and keeping only one (the
 oldest-dated) edition per work — other ISBNs for the same work go into
-`alternateIsbns` instead of being discarded. It also stores Google's own
-`averageRating`/`ratingsCount`, but those turned out unreliable for most
-books (too few votes, even for famous titles) and aren't surfaced
-anywhere — see `enrich-books.mts` below for the rating source the app
-actually uses.
+`alternateIsbns` instead of being discarded. Before falling back to the
+same-language `workKey` match, it also checks whether the found ISBN is
+already known on any catalog entry (`isbn`, `alternateIsbns`, or either
+`translations.*.isbn`) regardless of language, and skips inserting a
+duplicate if so — a cheap, exact-ISBN-only safety net; it can't catch a
+genuinely new ISBN for a work already catalogued in another language (that
+needs an Open Library work-key match, out of scope for a fast search
+import). It also stores Google's own `averageRating`/`ratingsCount`, but
+those turned out unreliable for most books (too few votes, even for
+famous titles) and aren't surfaced anywhere — see `enrich-books.mts`
+below for the rating source the app actually uses.
 
 Scheduled daily via `.github/workflows/import-books.yml`.
 

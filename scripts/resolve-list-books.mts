@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import {
+  computeWorkKey,
   fetchGoogleBooksByIsbn,
   findItalianTranslation,
   findWork,
@@ -16,17 +17,12 @@ const STALE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 
 type StoredBook = {
   _id: string;
-  isbn: string | null;
-  title: string;
   authors: string[];
   year: number | null;
-  publisher: string | null;
-  description: string | null;
   categories: string[];
-  language: string | null;
   alternateIsbns?: string[];
-  source?: string;
-  translations?: { it?: Translation; en?: Translation };
+  translations?: Partial<Record<string, Translation>>;
+  olWorkKey?: string | null;
   listResolutionCheckedAt?: Date | null;
   pendingReview?: boolean;
 };
@@ -91,18 +87,13 @@ async function main() {
       excludeId?: string,
     ): Promise<boolean> {
       const query: Record<string, unknown> = {
-        $or: [
-          { isbn },
-          { alternateIsbns: isbn },
-          { "translations.it.isbn": isbn },
-        ],
+        $or: [{ alternateIsbns: isbn }, { "translations.it.isbn": isbn }],
       };
       if (excludeId) query._id = { $ne: excludeId };
       return Boolean(await booksCollection.findOne(query));
     }
 
     const retryQuery: Record<string, unknown> = {
-      language: { $exists: true, $nin: [null, "it"] },
       "translations.it": { $exists: false },
     };
     if (!force) {
@@ -132,7 +123,6 @@ async function main() {
     const matchedBooks = await booksCollection
       .find({
         $or: [
-          { isbn: { $in: allIsbns } },
           { alternateIsbns: { $in: allIsbns } },
           { "translations.it.isbn": { $in: allIsbns } },
           { "translations.en.isbn": { $in: allIsbns } },
@@ -142,12 +132,10 @@ async function main() {
 
     const bookByIsbn = new Map<string, StoredBook>();
     for (const book of matchedBooks) {
-      if (book.isbn) bookByIsbn.set(book.isbn, book);
       for (const alt of book.alternateIsbns ?? []) bookByIsbn.set(alt, book);
-      if (book.translations?.it?.isbn)
-        bookByIsbn.set(book.translations.it.isbn, book);
-      if (book.translations?.en?.isbn)
-        bookByIsbn.set(book.translations.en.isbn, book);
+      for (const translation of Object.values(book.translations ?? {})) {
+        if (translation?.isbn) bookByIsbn.set(translation.isbn, book);
+      }
     }
 
     const unmatchedIsbns = allIsbns.filter((isbn) => !bookByIsbn.has(isbn));
@@ -173,18 +161,31 @@ async function main() {
     const claimedItalianIsbnsThisRun = new Set<string>();
 
     for (const book of retryCandidates) {
-      const foreignIsbn = book.isbn as string;
-      const work = await findWork(foreignIsbn);
+      const foreignTranslation = Object.values(book.translations ?? {}).find(
+        Boolean,
+      );
+      if (!foreignTranslation) continue;
+
+      const work = book.olWorkKey
+        ? { workKey: book.olWorkKey, firstPublishYear: null }
+        : await findWork(foreignTranslation.isbn);
       const translation = work
         ? await findItalianTranslation(work.workKey, googleApiKey)
         : null;
 
       if (!translation) {
-        console.log(`  · ${book.title}: ancora nessuna edizione italiana`);
+        console.log(
+          `  · ${foreignTranslation.title}: ancora nessuna edizione italiana`,
+        );
         if (!dryRun) {
           await booksCollection.updateOne(
             { _id: book._id },
-            { $set: { listResolutionCheckedAt: new Date() } },
+            {
+              $set: {
+                listResolutionCheckedAt: new Date(),
+                ...(work ? { olWorkKey: work.workKey } : {}),
+              },
+            },
           );
         }
         continue;
@@ -196,12 +197,17 @@ async function main() {
       ) {
         skippedCollision += 1;
         console.log(
-          `  · ${book.title}: ${translation.isbn} già presente su un altro libro, salto`,
+          `  · ${foreignTranslation.title}: ${translation.isbn} già presente su un altro libro, salto`,
         );
         if (!dryRun) {
           await booksCollection.updateOne(
             { _id: book._id },
-            { $set: { listResolutionCheckedAt: new Date() } },
+            {
+              $set: {
+                listResolutionCheckedAt: new Date(),
+                ...(work ? { olWorkKey: work.workKey } : {}),
+              },
+            },
           );
         }
         continue;
@@ -211,7 +217,7 @@ async function main() {
       upgraded += 1;
       withTranslation += 1;
       console.log(
-        `  ✓ ${book.title} → "${translation.title}" (${translation.isbn})`,
+        `  ✓ ${foreignTranslation.title} → "${translation.title}" (${translation.isbn})`,
       );
 
       if (!dryRun) {
@@ -221,6 +227,7 @@ async function main() {
             $set: {
               "translations.it": translation,
               listResolutionCheckedAt: new Date(),
+              olWorkKey: work?.workKey,
             },
           },
         );
@@ -239,6 +246,9 @@ async function main() {
         categories: [],
         language: null,
       };
+      // NYT/Hardcover lists are English-language platforms, so default to
+      // "en" when Google Books has no data (and thus no language) for the ISBN.
+      const lang = original.language ?? "en";
 
       const work = await findWork(isbn);
       const translation = work
@@ -270,29 +280,34 @@ async function main() {
       console.log(
         translation
           ? `  + ${original.title} → traduzione "${translation.title}" (${translation.isbn})`
-          : `  + ${original.title} (${original.language ?? "lingua ignota"}, nessuna edizione italiana)`,
+          : `  + ${original.title} (${lang}, nessuna edizione italiana)`,
       );
 
       if (!dryRun) {
-        const doc: StoredBook = {
-          _id: `list:${isbn}`,
+        const authors = original.authors.length
+          ? original.authors
+          : entry.author
+            ? [entry.author]
+            : [];
+        const originalTranslation: Translation = {
           isbn,
           title: original.title,
-          authors: original.authors.length
-            ? original.authors
-            : entry.author
-              ? [entry.author]
-              : [],
-          year: work?.firstPublishYear ?? original.year,
-          publisher: original.publisher,
           description: original.description,
+          workKey: computeWorkKey(original.title, authors[0]),
+        };
+        const doc: StoredBook = {
+          _id: `list:${isbn}`,
+          authors,
+          year: work?.firstPublishYear ?? original.year,
           categories: original.categories,
-          language: original.language,
           alternateIsbns: [],
-          source: "list",
+          translations: {
+            [lang]: originalTranslation,
+            ...(translation ? { it: translation } : {}),
+          },
           listResolutionCheckedAt: new Date(),
           pendingReview: true,
-          ...(translation ? { translations: { it: translation } } : {}),
+          ...(work ? { olWorkKey: work.workKey } : {}),
         };
         await booksCollection.insertOne(doc);
       }
