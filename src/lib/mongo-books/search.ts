@@ -116,7 +116,9 @@ const NOT_PENDING_REVIEW_SEARCH_FILTER = {
 
 function mongoDisplayFilter(preferredLanguage: PreferredLanguage) {
   return preferredLanguage === "it"
-    ? { $and: [ITALIAN_OR_LEGACY_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER] }
+    ? {
+        $and: [ITALIAN_OR_LEGACY_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER],
+      }
     : NOT_PENDING_REVIEW_MONGO_FILTER;
 }
 
