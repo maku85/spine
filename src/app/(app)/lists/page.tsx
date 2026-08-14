@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { ListManager, type ListSummary } from "@/components/list-manager";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,6 +8,8 @@ export default async function ListsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const t = await getTranslations("Lists.page");
 
   const { data: lists } = await supabase
     .from("lists")
@@ -49,11 +52,8 @@ export default async function ListsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="font-serif text-2xl">Le tue liste</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">
-        Raggruppa i libri del tuo catalogo in liste a tema, visibili sul tuo
-        profilo pubblico.
-      </p>
+      <h1 className="font-serif text-2xl">{t("title")}</h1>
+      <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("subtitle")}</p>
       <ListManager lists={listSummaries} />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ function ListCard({ list }: { list: ListSummary }) {
   const [isPending, startTransition] = useTransition();
   const [isRenaming, setIsRenaming] = useState(false);
   const [name, setName] = useState(list.name);
+  const t = useTranslations("Lists");
+  const common = useTranslations("Common.actions");
 
   function saveName() {
     const trimmed = name.trim();
@@ -72,7 +75,7 @@ function ListCard({ list }: { list: ListSummary }) {
               className="h-8"
             />
             <Button size="sm" disabled={isPending} onClick={saveName}>
-              Salva
+              {common("save")}
             </Button>
           </div>
         ) : (
@@ -83,7 +86,7 @@ function ListCard({ list }: { list: ListSummary }) {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Rinomina lista"
+                aria-label={t("renameAriaLabel")}
                 onClick={() => setIsRenaming(true)}
               >
                 <Pencil className="size-3.5" />
@@ -95,7 +98,7 @@ function ListCard({ list }: { list: ListSummary }) {
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Elimina lista"
+                      aria-label={t("deleteAriaLabel")}
                       className="text-destructive hover:text-destructive"
                     />
                   }
@@ -104,22 +107,23 @@ function ListCard({ list }: { list: ListSummary }) {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Eliminare «{list.name}»?</DialogTitle>
+                    <DialogTitle>
+                      {t("deleteTitle", { name: list.name })}
+                    </DialogTitle>
                     <DialogDescription>
-                      I libri restano nel tuo catalogo, viene eliminata solo la
-                      lista. Non si può annullare.
+                      {t("deleteDescription")}
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <DialogClose render={<Button variant="outline" />}>
-                      Annulla
+                      {common("cancel")}
                     </DialogClose>
                     <Button
                       variant="destructive"
                       disabled={isPending}
                       onClick={() => startTransition(() => deleteList(list.id))}
                     >
-                      Elimina
+                      {t("delete")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -130,10 +134,7 @@ function ListCard({ list }: { list: ListSummary }) {
       </div>
 
       {list.books.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nessun libro in questa lista. Aggiungili dalla pagina di dettaglio di
-          un libro.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("emptyList")}</p>
       ) : (
         <div className="flex flex-wrap gap-3">
           {list.books.map((book) => (
@@ -145,7 +146,7 @@ function ListCard({ list }: { list: ListSummary }) {
               />
               <button
                 type="button"
-                aria-label={`Rimuovi «${book.title}» dalla lista`}
+                aria-label={t("removeFromListAriaLabel", { title: book.title })}
                 disabled={isPending}
                 onClick={() =>
                   startTransition(() =>
@@ -167,6 +168,7 @@ function ListCard({ list }: { list: ListSummary }) {
 export function ListManager({ lists }: { lists: ListSummary[] }) {
   const [isPending, startTransition] = useTransition();
   const [newListName, setNewListName] = useState("");
+  const t = useTranslations("Lists");
 
   return (
     <div className="flex flex-col gap-6">
@@ -183,7 +185,7 @@ export function ListManager({ lists }: { lists: ListSummary[] }) {
         }}
       >
         <Input
-          placeholder="Nome nuova lista…"
+          placeholder={t("newListPlaceholder")}
           value={newListName}
           onChange={(e) => setNewListName(e.target.value)}
         />
@@ -193,14 +195,12 @@ export function ListManager({ lists }: { lists: ListSummary[] }) {
           className="gap-1.5"
         >
           <Plus className="size-4" />
-          Crea
+          {t("create")}
         </Button>
       </form>
 
       {lists.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Non hai ancora creato nessuna lista.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("noLists")}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {lists.map((list) => (

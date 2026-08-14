@@ -1,10 +1,12 @@
 import { BookPlus, LibraryBig } from "lucide-react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { type LibraryBook, LibraryView } from "@/components/library-view";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
+  const t = await getTranslations("Dashboard");
   const supabase = await createClient();
   const { data: userBooks, error } = await supabase
     .from("user_books")
@@ -20,9 +22,9 @@ export default async function DashboardPage() {
           <LibraryBig className="size-7" strokeWidth={1.75} />
         </div>
         <div>
-          <p className="font-serif text-lg">Il tuo scaffale è vuoto</p>
+          <p className="font-serif text-lg">{t("emptyTitle")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cerca un titolo e aggiungi il tuo primo libro al catalogo.
+            {t("emptyMessage")}
           </p>
         </div>
         <Button
@@ -31,7 +33,7 @@ export default async function DashboardPage() {
           className="mt-2 gap-1.5"
         >
           <BookPlus className="size-4" />
-          Aggiungi il tuo primo libro
+          {t("emptyCta")}
         </Button>
       </div>
     );

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export default async function AppLayout({
     .select("username, display_name, avatar_url")
     .eq("id", user.id)
     .single();
+  const t = await getTranslations("Common.nav");
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -56,8 +58,8 @@ export default async function AppLayout({
               nativeButton={false}
               variant="ghost"
               size="icon-sm"
-              aria-label="Suggerimenti"
-              title="Suggerimenti"
+              aria-label={t("suggestions")}
+              title={t("suggestions")}
               className="text-muted-foreground hover:text-foreground sm:hidden"
             >
               <Sparkles className="size-4 text-brass" />
@@ -70,7 +72,7 @@ export default async function AppLayout({
               className="hidden gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
             >
               <Sparkles className="size-3.5 text-brass" />
-              Suggerimenti
+              {t("suggestions")}
             </Button>
 
             <Button
@@ -78,8 +80,8 @@ export default async function AppLayout({
               nativeButton={false}
               variant="ghost"
               size="icon-sm"
-              aria-label="Cerca utenti"
-              title="Cerca utenti"
+              aria-label={t("searchUsers")}
+              title={t("searchUsers")}
               className="text-muted-foreground hover:text-foreground sm:hidden"
             >
               <Users className="size-4" />
@@ -92,15 +94,15 @@ export default async function AppLayout({
               className="hidden gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
             >
               <Users className="size-3.5" />
-              Utenti
+              {t("users")}
             </Button>
 
             <Button
               render={<Link href="/explore" />}
               nativeButton={false}
               size="icon-sm"
-              aria-label="Esplora"
-              title="Esplora"
+              aria-label={t("explore")}
+              title={t("explore")}
               className="shadow-xs sm:hidden"
             >
               <Compass className="size-4" />
@@ -112,14 +114,14 @@ export default async function AppLayout({
               className="hidden gap-1.5 shadow-xs sm:inline-flex"
             >
               <Compass className="size-4" />
-              Esplora
+              {t("explore")}
             </Button>
 
             {profile && (
               <Link
                 href={`/u/${profile.username}`}
                 className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-muted"
-                title="Il mio profilo pubblico"
+                title={t("myPublicProfile")}
               >
                 <ProfileAvatar
                   name={profile.display_name || profile.username}
@@ -138,8 +140,8 @@ export default async function AppLayout({
               nativeButton={false}
               variant="ghost"
               size="icon-sm"
-              aria-label="Impostazioni"
-              title="Impostazioni"
+              aria-label={t("settings")}
+              title={t("settings")}
               className="hidden text-muted-foreground hover:text-foreground sm:flex"
             >
               <Settings className="size-4" />
@@ -149,8 +151,8 @@ export default async function AppLayout({
                 type="submit"
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Esci"
-                title="Esci"
+                aria-label={t("signOut")}
+                title={t("signOut")}
                 className="text-muted-foreground hover:text-destructive"
               >
                 <LogOut className="size-4" />

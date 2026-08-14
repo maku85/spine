@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { IsbnScannerDialog } from "@/components/isbn-scanner-dialog";
 import { SearchResultCard } from "@/components/search-result-card";
@@ -21,6 +22,7 @@ import {
   searchBooks,
 } from "@/lib/search-books";
 import { SEARCH_PAGE_SIZE } from "@/lib/search-books-constants";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
 
 const EMPTY_PAGE: SearchResultsPage = {
   items: [],
@@ -29,15 +31,19 @@ const EMPTY_PAGE: SearchResultsPage = {
   pageSize: SEARCH_PAGE_SIZE,
 };
 
-const SORT_LABELS: Record<BrowseSortKey, string> = {
-  rating_desc: "Più votati",
-  title_asc: "Titolo A-Z",
-  title_desc: "Titolo Z-A",
-  year_desc: "Più recenti",
-  year_asc: "Più datati",
-};
+const SORT_KEYS: BrowseSortKey[] = [
+  "rating_desc",
+  "title_asc",
+  "title_desc",
+  "year_desc",
+  "year_asc",
+];
 
-export function BookSearch() {
+export function BookSearch({
+  preferredLanguage,
+}: {
+  preferredLanguage: PreferredLanguage;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<BrowseSortKey>("rating_desc");
   const [page, setPage] = useState(1);
@@ -46,12 +52,18 @@ export function BookSearch() {
   const [isSearching, startSearch] = useTransition();
   const [isAdding, startAdd] = useTransition();
 
+  const t = useTranslations("Explore");
+  const tSort = useTranslations("Explore.sort");
+  const common = useTranslations("Common.actions");
+  const locale = useLocale();
+  const numberLocale = locale === "en" ? "en-US" : "it-IT";
+
   const isBrowsing = !query.trim();
 
   useEffect(() => {
     if (isBrowsing) {
       startSearch(async () => {
-        setResultsPage(await browseBooks(sort, page));
+        setResultsPage(await browseBooks(sort, page, preferredLanguage));
       });
       return;
     }
@@ -59,12 +71,12 @@ export function BookSearch() {
     const trimmed = query.trim();
     const timeout = setTimeout(() => {
       startSearch(async () => {
-        setResultsPage(await searchBooks(trimmed, page));
+        setResultsPage(await searchBooks(trimmed, page, preferredLanguage));
       });
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query, sort, page, isBrowsing]);
+  }, [query, sort, page, isBrowsing, preferredLanguage]);
 
   const totalPages = Math.max(
     1,
@@ -77,7 +89,7 @@ export function BookSearch() {
         <div className="relative flex-1">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Cerca per titolo, autore o ISBN…"
+            placeholder={t("searchPlaceholder")}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -97,8 +109,8 @@ export function BookSearch() {
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {resultsPage.totalCount > 0
-              ? `${resultsPage.totalCount.toLocaleString("it-IT")} libri nel catalogo`
-              : "Catalogo"}
+              ? `${resultsPage.totalCount.toLocaleString(numberLocale)} ${t("catalogCountSuffix")}`
+              : t("catalogDefault")}
           </p>
           <Select
             value={sort}
@@ -111,9 +123,9 @@ export function BookSearch() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(SORT_LABELS).map(([value, label]) => (
+              {SORT_KEYS.map((value) => (
                 <SelectItem key={value} value={value} className="text-xs">
-                  {label}
+                  {tSort(value)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -122,14 +134,14 @@ export function BookSearch() {
       )}
       {isSearching && (
         <p className="text-sm text-muted-foreground">
-          {isBrowsing ? "Caricamento…" : "Ricerca in corso…"}
+          {isBrowsing ? t("loadingBrowse") : t("loadingSearch")}
         </p>
       )}
       {!isSearching && !isBrowsing && (
         <p className="text-sm text-muted-foreground">
           {resultsPage.totalCount === 0
-            ? "Nessun risultato"
-            : `${resultsPage.totalCount} risultat${resultsPage.totalCount === 1 ? "o" : "i"} trovat${resultsPage.totalCount === 1 ? "o" : "i"}`}
+            ? t("noResults")
+            : t("resultsCount", { count: resultsPage.totalCount })}
         </p>
       )}
       <div className="grid gap-3">
@@ -162,10 +174,10 @@ export function BookSearch() {
             onClick={() => setPage((p) => p - 1)}
           >
             <ChevronLeft className="size-4" />
-            Precedente
+            {common("previous")}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Pagina {page} di {totalPages}
+            {t("pageLabel", { page, totalPages })}
           </p>
           <Button
             variant="outline"
@@ -174,7 +186,7 @@ export function BookSearch() {
             className="gap-1"
             onClick={() => setPage((p) => p + 1)}
           >
-            Successiva
+            {common("next")}
             <ChevronRight className="size-4" />
           </Button>
         </div>

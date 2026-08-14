@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Star } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,12 @@ export function SuggestionCard({
 }) {
   const [added, setAdded] = useState(false);
   const [isAdding, startAdd] = useTransition();
+  const common = useTranslations("Common.actions");
+  const t = useTranslations("Cards");
+  const tLibrary = useTranslations("Library");
+  const unknownAuthor = tLibrary("unknownAuthor");
+  const locale = useLocale();
+  const numberLocale = locale === "en" ? "en-US" : "it-IT";
 
   const addButton = (
     <Button
@@ -47,7 +54,7 @@ export function SuggestionCard({
       }
     >
       {added && <Check className="size-4" />}
-      {added ? "Aggiunto" : "Aggiungi"}
+      {added ? common("added") : common("add")}
     </Button>
   );
 
@@ -55,7 +62,7 @@ export function SuggestionCard({
     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
       <Star className="size-3 fill-brass text-brass" />
       {averageRating.toFixed(1)}
-      {ratingsCount && ` (${ratingsCount.toLocaleString("it-IT")})`}
+      {ratingsCount && ` (${ratingsCount.toLocaleString(numberLocale)})`}
     </p>
   );
 
@@ -73,7 +80,7 @@ export function SuggestionCard({
             >
               <p className="truncate font-serif text-base">{title}</p>
               <p className="truncate text-sm text-muted-foreground">
-                {author || "Autore sconosciuto"}
+                {author || unknownAuthor}
                 {yearOrDetail && ` · ${yearOrDetail}`}
               </p>
               {ratingLine}
@@ -95,11 +102,11 @@ export function SuggestionCard({
               />
               <div className="flex min-w-0 flex-col gap-2 py-1">
                 <p className="text-sm font-sans font-medium text-foreground">
-                  {author || "Autore sconosciuto"}
+                  {author || unknownAuthor}
                 </p>
                 {yearOrDetail && (
                   <p className="font-mono text-xs text-muted-foreground">
-                    Anno: {yearOrDetail}
+                    {t("year")}: {yearOrDetail}
                   </p>
                 )}
                 {ratingLine}
@@ -108,11 +115,10 @@ export function SuggestionCard({
 
             <div className="flex flex-col gap-2">
               <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
-                Descrizione ed estratto
+                {t("descriptionExcerpt")}
               </span>
               <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 font-serif text-sm leading-relaxed text-foreground/90 max-h-[220px] overflow-y-auto pr-3">
-                {description ||
-                  "Nessuna descrizione disponibile per questo volume suggerito."}
+                {description || t("noSuggestedDescription")}
               </div>
             </div>
 

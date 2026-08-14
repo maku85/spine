@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCheck, UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ export function FollowButton({
   profileUserId: string;
   profileUsername: string;
 }) {
+  const t = useTranslations("Public.followButton");
   const [status, setStatus] = useState<Status>("loading");
   const [pending, startTransition] = useTransition();
 
@@ -64,12 +66,12 @@ export function FollowButton({
       {isFollowing ? (
         <>
           <UserCheck className="size-3.5" />
-          Seguito
+          {t("following")}
         </>
       ) : (
         <>
           <UserPlus className="size-3.5" />
-          Segui
+          {t("follow")}
         </>
       )}
     </Button>

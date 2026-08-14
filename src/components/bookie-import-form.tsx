@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,6 @@ import {
   groupBookieRows,
   parseCsv,
 } from "@/lib/bookie-import";
-import { STATUS_LABELS } from "@/lib/reading-status";
 
 const BATCH_SIZE = 15;
 
@@ -30,6 +30,8 @@ type Step =
 export function BookieImportForm() {
   const [step, setStep] = useState<Step>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("Settings.import");
+  const tStatus = useTranslations("ReadingStatus");
 
   async function handleFile(file: File) {
     setError(null);
@@ -38,14 +40,12 @@ export function BookieImportForm() {
       const rows = parseCsv(content);
       const books = groupBookieRows(rows);
       if (books.length === 0) {
-        setError(
-          "Nessun libro trovato in questo file: controlla che sia un export CSV di Bookie.",
-        );
+        setError(t("noBooksFound"));
         return;
       }
       setStep({ kind: "preview", books });
     } catch {
-      setError("Impossibile leggere il file. Controlla che sia un CSV valido.");
+      setError(t("cannotReadFile"));
     }
   }
 
@@ -84,9 +84,7 @@ export function BookieImportForm() {
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border/80 bg-card/40 px-6 py-10 text-center transition-colors hover:bg-card/70">
           <Upload className="size-6 text-muted-foreground" />
           <span className="text-sm font-medium">
-            {step.kind === "preview"
-              ? "Scegli un altro file"
-              : "Scegli il file CSV esportato da Bookie"}
+            {step.kind === "preview" ? t("chooseAnotherFile") : t("chooseFile")}
           </span>
           <input
             type="file"
@@ -109,24 +107,23 @@ export function BookieImportForm() {
         {step.kind === "preview" && counts && (
           <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/60 p-4">
             <p className="text-sm">
-              <span className="font-medium">{step.books.length}</span> libri
-              unici trovati nel file.
+              {t("booksFound", { count: step.books.length })}
             </p>
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span>
-                {STATUS_LABELS.reading}: {counts.reading}
+                {tStatus("reading")}: {counts.reading}
               </span>
               <span>·</span>
               <span>
-                {STATUS_LABELS.read}: {counts.read}
+                {tStatus("read")}: {counts.read}
               </span>
               <span>·</span>
               <span>
-                {STATUS_LABELS.to_read}: {counts.to_read}
+                {tStatus("to_read")}: {counts.to_read}
               </span>
               <span>·</span>
               <span>
-                {STATUS_LABELS.wishlist}: {counts.wishlist}
+                {tStatus("wishlist")}: {counts.wishlist}
               </span>
             </div>
             <Button
@@ -134,7 +131,7 @@ export function BookieImportForm() {
               className="w-fit"
               onClick={() => runImport(step.books)}
             >
-              Importa {step.books.length} libri
+              {t("importCount", { count: step.books.length })}
             </Button>
           </div>
         )}
@@ -147,7 +144,7 @@ export function BookieImportForm() {
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-4">
         <p className="text-sm">
-          Importazione in corso… {step.done}/{step.total}
+          {t("importing", { done: step.done, total: step.total })}
         </p>
         <div className="h-2 overflow-hidden rounded-full bg-secondary">
           <div
@@ -169,11 +166,14 @@ export function BookieImportForm() {
     <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/60 p-4">
       <p className="flex items-center gap-1.5 text-sm font-medium">
         <CheckCircle2 className="size-4 text-primary" />
-        Importazione completata
+        {t("completed")}
       </p>
       <p className="text-sm text-muted-foreground">
-        {imported} importati, {alreadyPresent} già presenti in libreria
-        {failed.length > 0 && `, ${failed.length} falliti`}.
+        {t("summary", {
+          imported,
+          alreadyPresent,
+          failed: failed.length,
+        })}
       </p>
       {failed.length > 0 && (
         <ul className="flex flex-col gap-1 text-xs text-destructive">
@@ -190,7 +190,7 @@ export function BookieImportForm() {
         className="w-fit"
         onClick={() => setStep({ kind: "idle" })}
       >
-        Importa un altro file
+        {t("importAnother")}
       </Button>
     </div>
   );

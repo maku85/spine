@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateUserBook } from "@/lib/actions/books";
-import { STATUS_LABELS } from "@/lib/reading-status";
+import { STATUS_ORDER } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
 
 export function StatusSelect({
@@ -22,6 +23,8 @@ export function StatusSelect({
 }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const t = useTranslations("ReadingStatus");
+  const tLibrary = useTranslations("Library");
 
   if (!editing) {
     return (
@@ -29,13 +32,13 @@ export function StatusSelect({
         type="button"
         onClick={() => setEditing(true)}
         className="transition-opacity hover:opacity-70"
-        aria-label="Modifica stato di lettura"
+        aria-label={tLibrary("status.editAriaLabel")}
       >
         <Badge
           variant="outline"
           className="w-fit font-mono text-[9px] tracking-widest uppercase bg-secondary/40 border-border/60"
         >
-          {STATUS_LABELS[status]}
+          {t(status)}
         </Badge>
       </button>
     );
@@ -57,9 +60,9 @@ export function StatusSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(STATUS_LABELS).map(([value, label]) => (
+        {STATUS_ORDER.map((value) => (
           <SelectItem key={value} value={value}>
-            {label}
+            {t(value)}
           </SelectItem>
         ))}
       </SelectContent>

@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { SuggestionCard } from "@/components/suggestion-card";
 import { addMongoBookToCatalog } from "@/lib/actions/books";
 import { fetchNotableLists, type SuggestedList } from "@/lib/lists/read";
@@ -59,30 +60,42 @@ type Section = {
 };
 
 export default async function SuggestionsPage() {
+  const t = await getTranslations("Suggestions");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("language")
+    .eq("id", user?.id ?? "")
+    .single();
+  const preferredLanguage = profile?.language ?? "it";
+
   if (!process.env.MONGODB_URI) {
     return (
       <EmptyState
-        title="Suggerimenti non configurati"
-        message="Le liste vengono lette dal catalogo importato in MongoDB. Aggiungi una MONGODB_URI per attivarle."
+        title={t("notConfigured.title")}
+        message={t("notConfigured.message")}
       />
     );
   }
 
   const [lists, topRatedBooks] = await Promise.all([
-    fetchNotableLists(),
-    fetchTopRatedBooks(),
+    fetchNotableLists(preferredLanguage),
+    fetchTopRatedBooks(preferredLanguage),
   ]);
 
   if (lists.length === 0 && topRatedBooks.length === 0) {
     return (
       <EmptyState
-        title="Nessun suggerimento disponibile"
-        message="Lancia `pnpm import-nyt-bestsellers`, `pnpm import-hardcover-lists` e `pnpm import-ratings` per popolare le liste e le classifiche da cui vengono generati i suggerimenti."
+        title={t("noneAvailable.title")}
+        message={t("noneAvailable.message")}
       />
     );
   }
 
-  const supabase = await createClient();
   const { data: userBooks } = await supabase
     .from("user_books")
     .select("books(title, isbn)");
@@ -121,7 +134,7 @@ export default async function SuggestionsPage() {
 
   const topRatedSection: Section = {
     key: "top-rated",
-    label: "Più votati",
+    label: t("topRated"),
     items: excludeOwned(topRatedBooks)
       .slice(0, TOP_RATED_LIMIT)
       .map((book) => ({ book, detail: book.year })),
@@ -134,18 +147,14 @@ export default async function SuggestionsPage() {
   return (
     <div className="flex flex-col gap-10">
       <div>
-        <h1 className="font-serif text-2xl">Suggerimenti di lettura</h1>
+        <h1 className="font-serif text-2xl">{t("page.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Bestseller New York Times, liste Hardcover e libri più votati, dal tuo
-          catalogo.
+          {t("page.subtitle")}
         </p>
       </div>
 
       {sections.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Non ho trovato titoli da suggerirti al momento: probabilmente li hai
-          già tutti in catalogo.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("allOwned")}</p>
       )}
 
       {sections.map((section) => (

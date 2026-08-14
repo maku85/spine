@@ -37,7 +37,7 @@ type StoredBook = {
   description: string | null;
   categories: string[];
   language?: string | null;
-  translations?: { it?: Translation };
+  translations?: { it?: Translation; en?: Translation };
   moodTags?: string[];
   series?: Array<{ name: string; position: number | null }>;
 };
@@ -46,7 +46,7 @@ function isDisplayable(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): boolean {
-  if (preferredLanguage === "all") return true;
+  if (preferredLanguage !== "it") return true;
   return (
     doc.language == null ||
     doc.language === "it" ||
@@ -71,15 +71,21 @@ function toSuggestedBook(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): SuggestedBook {
-  const it = preferredLanguage === "it" ? doc.translations?.it : undefined;
+  const translation =
+    preferredLanguage === "it"
+      ? doc.translations?.it
+      : preferredLanguage === "en"
+        ? doc.translations?.en
+        : undefined;
   return {
     mongoId: doc._id,
-    isbn: it?.isbn ?? doc.isbn ?? null,
-    title: it?.title ?? doc.title,
+    isbn: translation?.isbn ?? doc.isbn ?? null,
+    title: translation?.title ?? doc.title,
     authors: doc.authors ?? [],
     year: doc.year ?? null,
     publisher: doc.publisher ?? null,
-    description: (it ? it.description : doc.description) ?? null,
+    description:
+      (translation ? translation.description : doc.description) ?? null,
     categories: doc.categories ?? [],
     nytRank: null,
     nytWeeksOnList: null,
@@ -116,6 +122,7 @@ export async function fetchNotableLists(
           { alternateIsbns: { $in: allIsbns } },
           { englishIsbn: { $in: allIsbns } },
           { "translations.it.isbn": { $in: allIsbns } },
+          { "translations.en.isbn": { $in: allIsbns } },
         ],
       })
       .toArray();
@@ -127,6 +134,8 @@ export async function fetchNotableLists(
       if (book.englishIsbn) byIsbn.set(book.englishIsbn, book);
       if (book.translations?.it?.isbn)
         byIsbn.set(book.translations.it.isbn, book);
+      if (book.translations?.en?.isbn)
+        byIsbn.set(book.translations.en.isbn, book);
     }
 
     return lists

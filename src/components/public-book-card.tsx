@@ -1,6 +1,7 @@
 "use client";
 
 import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { STATUS_LABELS } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
 
 // Read-only: shown on a public profile page to visitors who aren't the
@@ -36,14 +36,16 @@ export function PublicBookCard({
   subjects: string[];
   firstPublishYear: number | null;
 }) {
-  const authorLabel = authors.join(", ") || "Autore sconosciuto";
+  const t = useTranslations("Public");
+  const tStatus = useTranslations("ReadingStatus");
+  const authorLabel = authors.join(", ") || t("unknownAuthor");
 
   const statusBadge = (
     <Badge
       variant="outline"
       className="w-fit font-mono text-[9px] tracking-widest uppercase bg-secondary/40 border-border/60"
     >
-      {STATUS_LABELS[status]}
+      {tStatus(status)}
     </Badge>
   );
 
@@ -111,7 +113,7 @@ export function PublicBookCard({
             </p>
             {firstPublishYear && (
               <p className="font-mono text-xs text-muted-foreground">
-                Anno: {firstPublishYear}
+                {t("year")}: {firstPublishYear}
               </p>
             )}
             <div className="mt-1">{statusBadge}</div>
@@ -136,7 +138,7 @@ export function PublicBookCard({
         {description && (
           <div className="flex flex-col gap-2">
             <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
-              Descrizione del volume
+              {t("volumeDescription")}
             </span>
             <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 font-serif text-sm leading-relaxed text-foreground/90 max-h-[220px] overflow-y-auto pr-3">
               {description}

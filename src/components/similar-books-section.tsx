@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { SuggestionCard } from "@/components/suggestion-card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 export function SimilarBooksSection({ title }: { title: string }) {
   const [results, setResults] = useState<SimilarBookSuggestion[] | null>(null);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("BookDetail.similarBooks");
 
   if (results === null) {
     return (
@@ -28,23 +30,19 @@ export function SimilarBooksSection({ title }: { title: string }) {
         }
       >
         <Sparkles className="size-4" />
-        {isPending ? "Cerco libri simili…" : "Scopri libri simili"}
+        {isPending ? t("loading") : t("cta")}
       </Button>
     );
   }
 
   if (results.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Nessun suggerimento trovato per questo libro al momento.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <h2 className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-        Libri simili
+        {t("heading")}
       </h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {results.map(({ result, averageRating, ratingsCount }) => (

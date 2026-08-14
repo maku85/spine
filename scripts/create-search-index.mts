@@ -49,6 +49,21 @@ const INDEX_DEFINITION = {
               isbn: { type: "string" },
             },
           },
+          en: {
+            type: "document",
+            fields: {
+              title: [
+                {
+                  type: "autocomplete",
+                  tokenization: "edgeGram",
+                  minGrams: 2,
+                  maxGrams: 15,
+                  foldDiacritics: true,
+                },
+              ],
+              isbn: { type: "string" },
+            },
+          },
         },
       },
     },

@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { AddToListDialog } from "@/components/add-to-list-dialog";
 import { BookCover } from "@/components/book-cover";
 import { LikeButton } from "@/components/like-button";
@@ -16,6 +17,10 @@ export default async function BookDetailPage({
   params: Promise<{ userBookId: string }>;
 }) {
   const { userBookId } = await params;
+
+  const t = await getTranslations("BookDetail");
+  const tLibrary = await getTranslations("Library");
+  const unknownAuthor = tLibrary("unknownAuthor");
 
   const supabase = await createClient();
   const {
@@ -60,7 +65,7 @@ export default async function BookDetailPage({
         className="mb-6 inline-flex items-center gap-2 text-xs font-mono tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground sm:mb-8"
       >
         <ArrowLeft className="size-3.5" />
-        Torna al catalogo
+        {t("backLink")}
       </Link>
 
       <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
@@ -74,7 +79,7 @@ export default async function BookDetailPage({
               {book.title}
             </h1>
             <p className="mt-2 text-base text-muted-foreground font-sans">
-              {book.authors.join(", ") || "Autore sconosciuto"}
+              {book.authors.join(", ") || unknownAuthor}
               {book.first_publish_year && (
                 <span className="font-mono text-xs text-muted-foreground/70 ml-2">
                   · {book.first_publish_year}

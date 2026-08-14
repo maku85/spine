@@ -1,6 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,8 @@ export function RemoveBookButton({
   title: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("Library.removeButton");
+  const common = useTranslations("Common.actions");
 
   return (
     <Dialog>
@@ -35,26 +38,23 @@ export function RemoveBookButton({
         }
       >
         <Trash2 className="size-4" />
-        Rimuovi dalla libreria
+        {t("trigger")}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rimuovere «{title}»?</DialogTitle>
-          <DialogDescription>
-            Il libro verrà tolto dal tuo catalogo insieme allo stato di lettura
-            e alla valutazione. Non si può annullare.
-          </DialogDescription>
+          <DialogTitle>{t("title", { title })}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>
-            Annulla
+            {common("cancel")}
           </DialogClose>
           <Button
             variant="destructive"
             disabled={pending}
             onClick={() => startTransition(() => removeUserBook(userBookId))}
           >
-            {pending ? "Rimozione…" : "Rimuovi"}
+            {pending ? common("removing") : common("remove")}
           </Button>
         </DialogFooter>
       </DialogContent>

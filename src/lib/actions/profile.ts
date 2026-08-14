@@ -1,29 +1,30 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
-const ProfileSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z0-9_]{3,20}$/, {
-      error: "Usa 3-20 caratteri: lettere minuscole, numeri, underscore.",
-    }),
-  displayName: z
-    .string()
-    .trim()
-    .max(60)
-    .optional()
-    .transform((value) => value || null),
-  avatarUrl: z
-    .union([z.url({ error: "Inserisci un URL valido." }), z.literal("")])
-    .optional()
-    .transform((value) => value || null),
-  language: z.enum(["it", "all"]),
-});
+function buildSchema(t: Awaited<ReturnType<typeof getTranslations>>) {
+  return z.object({
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9_]{3,20}$/, { error: t("usernameFormat") }),
+    displayName: z
+      .string()
+      .trim()
+      .max(60)
+      .optional()
+      .transform((value) => value || null),
+    avatarUrl: z
+      .union([z.url({ error: t("avatarUrl") }), z.literal("")])
+      .optional()
+      .transform((value) => value || null),
+    language: z.enum(["it", "all", "en"]),
+  });
+}
 
 export type ProfileFormState = { error: string } | undefined;
 
@@ -37,11 +38,15 @@ export async function updateProfile(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const validated = ProfileSchema.safeParse({
+  const rawLanguage = formData.get("language");
+  const locale = rawLanguage === "en" ? "en" : "it";
+  const t = await getTranslations({ locale, namespace: "Errors" });
+
+  const validated = buildSchema(t).safeParse({
     username: formData.get("username"),
     displayName: formData.get("displayName"),
     avatarUrl: formData.get("avatarUrl"),
-    language: formData.get("language"),
+    language: rawLanguage,
   });
 
   if (!validated.success) {
@@ -62,7 +67,7 @@ export async function updateProfile(
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "Questo username è già in uso." };
+      return { error: t("usernameTaken") };
     }
     throw error;
   }

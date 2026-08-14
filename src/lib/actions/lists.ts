@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { requireUserWithUsername } from "@/lib/actions/current-user";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,7 +12,10 @@ function revalidateListPages(username: string) {
 
 export async function createList(name: string) {
   const trimmed = name.trim();
-  if (!trimmed) throw new Error("Il nome della lista non può essere vuoto.");
+  if (!trimmed) {
+    const t = await getTranslations("Errors");
+    throw new Error(t("listNameEmpty"));
+  }
 
   const supabase = await createClient();
   const { id: userId, username } = await requireUserWithUsername(supabase);
@@ -26,7 +30,10 @@ export async function createList(name: string) {
 
 export async function renameList(listId: string, name: string) {
   const trimmed = name.trim();
-  if (!trimmed) throw new Error("Il nome della lista non può essere vuoto.");
+  if (!trimmed) {
+    const t = await getTranslations("Errors");
+    throw new Error(t("listNameEmpty"));
+  }
 
   const supabase = await createClient();
   const { username } = await requireUserWithUsername(supabase);

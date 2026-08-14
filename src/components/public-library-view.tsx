@@ -8,6 +8,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { PublicBookCard } from "@/components/public-book-card";
 import { Input } from "@/components/ui/input";
@@ -21,10 +22,8 @@ import {
 import {
   groupIntoSections,
   primaryAuthor,
-  SORT_LABELS,
   type SortKey,
 } from "@/lib/book-sections";
-import { STATUS_LABELS } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
 
@@ -39,16 +38,12 @@ export type PublicLibraryBook = {
   firstPublishYear: number | null;
 };
 
-const STATUS_FILTER_OPTIONS: {
-  key: string;
-  label: string;
-  icon?: React.ElementType;
-}[] = [
-  { key: "all", label: "Tutti i volumi", icon: BookOpen },
-  { key: "read", label: STATUS_LABELS.read, icon: BookCheck },
-  { key: "reading", label: STATUS_LABELS.reading, icon: Sparkles },
-  { key: "to_read", label: STATUS_LABELS.to_read, icon: Clock },
-  { key: "wishlist", label: STATUS_LABELS.wishlist, icon: Heart },
+const SORT_KEYS: SortKey[] = [
+  "added_desc",
+  "title_asc",
+  "title_desc",
+  "author_asc",
+  "author_desc",
 ];
 
 export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
@@ -56,6 +51,24 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
   const [sort, setSort] = useState<SortKey>("added_desc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [genreFilter, setGenreFilter] = useState<string>("all");
+
+  const t = useTranslations("Public");
+  const tStatus = useTranslations("ReadingStatus");
+  const tSort = useTranslations("Sort");
+  const locale = useLocale();
+  const collatorLocale = locale === "en" ? "en" : "it";
+
+  const STATUS_FILTER_OPTIONS: {
+    key: string;
+    label: string;
+    icon?: React.ElementType;
+  }[] = [
+    { key: "all", label: t("library.allVolumes"), icon: BookOpen },
+    { key: "read", label: tStatus("read"), icon: BookCheck },
+    { key: "reading", label: tStatus("reading"), icon: Sparkles },
+    { key: "to_read", label: tStatus("to_read"), icon: Clock },
+    { key: "wishlist", label: tStatus("wishlist"), icon: Heart },
+  ];
 
   const counts = useMemo(() => {
     return {
@@ -86,9 +99,9 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
     }
 
     return [...genreCounts.entries()].sort(
-      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "it"),
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], collatorLocale),
     );
-  }, [books, statusFilter]);
+  }, [books, statusFilter, collatorLocale]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -111,26 +124,26 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
     return [...matching].sort((a, b) => {
       switch (sort) {
         case "title_asc":
-          return a.title.localeCompare(b.title, "it");
+          return a.title.localeCompare(b.title, collatorLocale);
         case "title_desc":
-          return b.title.localeCompare(a.title, "it");
+          return b.title.localeCompare(a.title, collatorLocale);
         case "author_asc":
           return primaryAuthor(a.authors).localeCompare(
             primaryAuthor(b.authors),
-            "it",
+            collatorLocale,
           );
         default:
           return primaryAuthor(b.authors).localeCompare(
             primaryAuthor(a.authors),
-            "it",
+            collatorLocale,
           );
       }
     });
-  }, [books, query, sort, statusFilter, genreFilter]);
+  }, [books, query, sort, statusFilter, genreFilter, collatorLocale]);
 
   const sections = useMemo(
-    () => groupIntoSections(filtered, sort),
-    [filtered, sort],
+    () => groupIntoSections(filtered, sort, t("unknownAuthor")),
+    [filtered, sort, t],
   );
   const isTitleSort = sort === "title_asc" || sort === "title_desc";
 
@@ -177,11 +190,11 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
       </div>
 
       {/* Genre breakdown for the active status tab — click a genre to
-          narrow the grid further, "Tutti i generi" clears it. */}
+          narrow the grid further, the "all" pill clears it. */}
       {genresInStatus.length > 0 && (
         <div className="mb-6 -mx-1 flex flex-wrap items-center gap-1.5 px-1">
           <span className="mr-1 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-            Generi
+            {t("library.genres")}
           </span>
           <button
             type="button"
@@ -193,7 +206,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
                 : "border-border/50 bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
-            Tutti
+            {t("library.all")}
           </button>
           {genresInStatus.map(([genre, count]) => (
             <button
@@ -220,7 +233,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/80" />
           <Input
-            placeholder="Cerca per titolo o autore…"
+            placeholder={t("library.searchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9 bg-background/80 border-border/70 focus-visible:ring-brass/50 text-xs"
@@ -233,23 +246,25 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
             onValueChange={(value) => selectStatus(value ?? "all")}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:hidden">
-              <SelectValue placeholder="Stato lettura" />
+              <SelectValue
+                placeholder={t("library.readingStatusPlaceholder")}
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-xs">
-                Tutti i volumi ({counts.all})
+                {t("library.allVolumes")} ({counts.all})
               </SelectItem>
               <SelectItem value="read" className="text-xs">
-                {STATUS_LABELS.read} ({counts.read})
+                {tStatus("read")} ({counts.read})
               </SelectItem>
               <SelectItem value="reading" className="text-xs">
-                {STATUS_LABELS.reading} ({counts.reading})
+                {tStatus("reading")} ({counts.reading})
               </SelectItem>
               <SelectItem value="to_read" className="text-xs">
-                {STATUS_LABELS.to_read} ({counts.to_read})
+                {tStatus("to_read")} ({counts.to_read})
               </SelectItem>
               <SelectItem value="wishlist" className="text-xs">
-                {STATUS_LABELS.wishlist} ({counts.wishlist})
+                {tStatus("wishlist")} ({counts.wishlist})
               </SelectItem>
             </SelectContent>
           </Select>
@@ -263,9 +278,9 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(SORT_LABELS).map(([value, label]) => (
+              {SORT_KEYS.map((value) => (
                 <SelectItem key={value} value={value} className="text-xs">
-                  {label}
+                  {tSort(value)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -276,11 +291,10 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 py-16 text-center">
           <p className="font-serif text-lg text-foreground">
-            Nessun libro corrisponde ai filtri
+            {t("library.empty.title")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prova a selezionare un altro stato di lettura, un altro genere, o a
-            cancellare la ricerca.
+            {t("library.empty.message")}
           </p>
         </div>
       ) : (

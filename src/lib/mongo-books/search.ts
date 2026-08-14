@@ -52,7 +52,7 @@ type StoredBook = {
   description: string | null;
   categories: string[];
   language?: string | null;
-  translations?: { it?: Translation };
+  translations?: { it?: Translation; en?: Translation };
   nytRank?: number;
   nytWeeksOnList?: number;
   nytListName?: string;
@@ -66,15 +66,21 @@ function toResult(
   doc: StoredBook,
   preferredLanguage: PreferredLanguage,
 ): MongoBookResult {
-  const it = preferredLanguage === "it" ? doc.translations?.it : undefined;
+  const translation =
+    preferredLanguage === "it"
+      ? doc.translations?.it
+      : preferredLanguage === "en"
+        ? doc.translations?.en
+        : undefined;
   return {
     mongoId: doc._id,
-    isbn: it?.isbn ?? doc.isbn ?? null,
-    title: it?.title ?? doc.title,
+    isbn: translation?.isbn ?? doc.isbn ?? null,
+    title: translation?.title ?? doc.title,
     authors: doc.authors ?? [],
     year: doc.year ?? null,
     publisher: doc.publisher ?? null,
-    description: (it ? it.description : doc.description) ?? null,
+    description:
+      (translation ? translation.description : doc.description) ?? null,
     categories: doc.categories ?? [],
     nytRank: doc.nytRank ?? null,
     nytWeeksOnList: doc.nytWeeksOnList ?? null,
@@ -138,7 +144,12 @@ export async function searchMongoBooks(
               {
                 text: {
                   query: isbn,
-                  path: ["isbn", "alternateIsbns", "translations.it.isbn"],
+                  path: [
+                    "isbn",
+                    "alternateIsbns",
+                    "translations.it.isbn",
+                    "translations.en.isbn",
+                  ],
                 },
               },
             ],
@@ -156,6 +167,12 @@ export async function searchMongoBooks(
                     autocomplete: {
                       query: word,
                       path: "translations.it.title",
+                    },
+                  },
+                  {
+                    autocomplete: {
+                      query: word,
+                      path: "translations.en.title",
                     },
                   },
                 ],

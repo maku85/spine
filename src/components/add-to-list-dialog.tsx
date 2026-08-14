@@ -2,6 +2,7 @@
 
 import { Check, ListPlus, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ export function AddToListDialog({
   const [isPending, startTransition] = useTransition();
   const [members, setMembers] = useState(new Set(memberListIds));
   const [newListName, setNewListName] = useState("");
+  const t = useTranslations("BookDetail.addToList");
 
   function toggle(listId: string) {
     const wasMember = members.has(listId);
@@ -51,18 +53,16 @@ export function AddToListDialog({
     <Dialog>
       <DialogTrigger render={<Button variant="outline" className="gap-1.5" />}>
         <ListPlus className="size-4" />
-        Aggiungi a una lista
+        {t("trigger")}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Aggiungi a una lista</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
           {lists.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Non hai ancora nessuna lista: creane una qui sotto.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("empty")}</p>
           )}
           {lists.map((list) => {
             const isMember = members.has(list.id);
@@ -109,7 +109,7 @@ export function AddToListDialog({
           }}
         >
           <Input
-            placeholder="Nuova lista…"
+            placeholder={t("newListPlaceholder")}
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
             className="flex-1"
@@ -121,7 +121,7 @@ export function AddToListDialog({
             className="gap-1.5"
           >
             <Plus className="size-4" />
-            Crea
+            {t("create")}
           </Button>
         </form>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { updateUserBook } from "@/lib/actions/books";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ export function LikeButton({
 }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const t = useTranslations("Library.likeButton");
 
   if (!editing) {
     return (
@@ -23,10 +25,10 @@ export function LikeButton({
         className="flex items-center gap-1 transition-opacity hover:opacity-70"
         aria-label={
           liked === true
-            ? "Ti piace, tocca per modificare"
+            ? t("likedAriaLabel")
             : liked === false
-              ? "Non ti piace, tocca per modificare"
-              : "Aggiungi un giudizio"
+              ? t("dislikedAriaLabel")
+              : t("addJudgmentAriaLabel")
         }
       >
         {liked === true && (
@@ -37,7 +39,7 @@ export function LikeButton({
         )}
         {liked === null && (
           <span className="font-mono text-[9px] tracking-widest text-muted-foreground/70 uppercase">
-            Giudizio
+            {t("unratedLabel")}
           </span>
         )}
       </button>
@@ -55,7 +57,7 @@ export function LikeButton({
 
   return (
     <fieldset
-      aria-label="Modifica giudizio"
+      aria-label={t("editAriaLabel")}
       className="m-0 flex items-center gap-1 border-0 p-0"
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
@@ -66,7 +68,7 @@ export function LikeButton({
       <button
         type="button"
         disabled={pending}
-        aria-label="Mi piace"
+        aria-label={t("likeAriaLabel")}
         onClick={() => commit(true)}
       >
         <ThumbsUp
@@ -81,7 +83,7 @@ export function LikeButton({
       <button
         type="button"
         disabled={pending}
-        aria-label="Non mi piace"
+        aria-label={t("dislikeAriaLabel")}
         onClick={() => commit(false)}
       >
         <ThumbsDown

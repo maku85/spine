@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { BookCard } from "@/components/book-card";
 import { Input } from "@/components/ui/input";
@@ -15,10 +16,9 @@ import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs";
 import {
   groupIntoSections,
   primaryAuthor,
-  SORT_LABELS,
   type SortKey,
 } from "@/lib/book-sections";
-import { STATUS_LABELS, STATUS_ORDER } from "@/lib/reading-status";
+import { STATUS_ORDER } from "@/lib/reading-status";
 import type { ReadingStatus } from "@/lib/supabase/database.types";
 
 type StatusFilter = ReadingStatus | "all";
@@ -32,18 +32,26 @@ export type LibraryBook = {
   addedAt: string;
 };
 
-const LIKED_LABELS: Record<string, string> = {
-  all: "Qualsiasi giudizio",
-  liked: "Mi piace",
-  disliked: "Non mi piace",
-  none: "Senza giudizio",
-};
+const SORT_KEYS: SortKey[] = [
+  "added_desc",
+  "title_asc",
+  "title_desc",
+  "author_asc",
+  "author_desc",
+];
+const LIKED_KEYS = ["all", "liked", "disliked", "none"] as const;
 
 export function LibraryView({ books }: { books: LibraryBook[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("added_desc");
   const [likedFilter, setLikedFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const t = useTranslations("Library");
+  const tStatus = useTranslations("ReadingStatus");
+  const tSort = useTranslations("Sort");
+  const locale = useLocale();
+  const collatorLocale = locale === "en" ? "en" : "it";
 
   const statusCounts = useMemo(() => {
     const counts: Record<ReadingStatus, number> = {
@@ -88,28 +96,28 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
     return matching.sort((a, b) => {
       switch (sort) {
         case "title_asc":
-          return a.title.localeCompare(b.title, "it");
+          return a.title.localeCompare(b.title, collatorLocale);
         case "title_desc":
-          return b.title.localeCompare(a.title, "it");
+          return b.title.localeCompare(a.title, collatorLocale);
         case "author_asc":
           return primaryAuthor(a.authors).localeCompare(
             primaryAuthor(b.authors),
-            "it",
+            collatorLocale,
           );
         case "author_desc":
           return primaryAuthor(b.authors).localeCompare(
             primaryAuthor(a.authors),
-            "it",
+            collatorLocale,
           );
         default:
           return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
       }
     });
-  }, [tabBooks, query, sort, likedFilter]);
+  }, [tabBooks, query, sort, likedFilter, collatorLocale]);
 
   const sections = useMemo(
-    () => groupIntoSections(filtered, sort),
-    [filtered, sort],
+    () => groupIntoSections(filtered, sort, t("unknownAuthor")),
+    [filtered, sort, t],
   );
   const isTitleSort = sort === "title_asc" || sort === "title_desc";
 
@@ -118,10 +126,10 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
       <div className="mb-6 flex flex-col gap-1 border-b border-border/50 pb-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-serif text-2xl font-normal tracking-tight sm:text-3xl">
-            La tua libreria
+            {t("page.title")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Catalogo privato delle tue letture, recensioni e desideri.
+            {t("page.subtitle")}
           </p>
         </div>
         <div className="mt-2 sm:mt-0 flex items-center gap-2">
@@ -146,10 +154,12 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
         className="mb-6 sm:mb-8"
       >
         <TabsList className="w-full flex-wrap sm:w-fit">
-          <TabsTab value="all">Tutti ({books.length})</TabsTab>
+          <TabsTab value="all">
+            {t("tabs.all")} ({books.length})
+          </TabsTab>
           {STATUS_ORDER.map((status) => (
             <TabsTab key={status} value={status}>
-              {STATUS_LABELS[status]} ({statusCounts[status]})
+              {tStatus(status)} ({statusCounts[status]})
             </TabsTab>
           ))}
         </TabsList>
@@ -159,7 +169,7 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/80" />
           <Input
-            placeholder="Cerca per titolo o autore…"
+            placeholder={t("searchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9 bg-background/80 border-border/70 focus-visible:ring-brass/50"
@@ -174,9 +184,9 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(LIKED_LABELS).map(([value, label]) => (
+              {LIKED_KEYS.map((value) => (
                 <SelectItem key={value} value={value} className="text-xs">
-                  {label}
+                  {t(`liked.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -189,9 +199,9 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(SORT_LABELS).map(([value, label]) => (
+              {SORT_KEYS.map((value) => (
                 <SelectItem key={value} value={value} className="text-xs">
-                  {label}
+                  {tSort(value)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -202,10 +212,10 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 py-16 text-center">
           <p className="font-serif text-lg text-foreground">
-            Nessun risultato trovato
+            {t("empty.title")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prova a modificare i filtri o il termine di ricerca.
+            {t("empty.message")}
           </p>
         </div>
       ) : (

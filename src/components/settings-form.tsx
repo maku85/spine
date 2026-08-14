@@ -1,33 +1,47 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { updateProfile } from "@/lib/actions/profile";
+import type { PreferredLanguage } from "@/lib/supabase/database.types";
+
+const LANGUAGE_KEYS: PreferredLanguage[] = ["it", "all", "en"];
 
 export function SettingsForm({
   username,
   displayName,
   avatarUrl,
+  language,
 }: {
   username: string;
   displayName: string | null;
   avatarUrl: string | null;
+  language: PreferredLanguage;
 }) {
   const [state, action, pending] = useActionState(updateProfile, undefined);
+  const t = useTranslations("Settings.form");
+  const tLanguages = useTranslations("Settings.languages");
+  const common = useTranslations("Common.actions");
 
   return (
     <form action={action} className="flex max-w-sm flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="username">Username</Label>
+        <Label htmlFor="username">{t("username")}</Label>
         <Input id="username" name="username" defaultValue={username} required />
-        <p className="text-xs text-muted-foreground">
-          Usato nell'indirizzo pubblico del tuo profilo.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="displayName">Nome visualizzato</Label>
+        <Label htmlFor="displayName">{t("displayName")}</Label>
         <Input
           id="displayName"
           name="displayName"
@@ -36,7 +50,7 @@ export function SettingsForm({
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="avatarUrl">URL avatar</Label>
+        <Label htmlFor="avatarUrl">{t("avatarUrl")}</Label>
         <Input
           id="avatarUrl"
           name="avatarUrl"
@@ -45,11 +59,27 @@ export function SettingsForm({
           placeholder="https://…"
         />
       </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="language">{t("language")}</Label>
+        <Select name="language" defaultValue={language}>
+          <SelectTrigger id="language" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LANGUAGE_KEYS.map((value) => (
+              <SelectItem key={value} value={value}>
+                {tLanguages(value)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">{t("languageHint")}</p>
+      </div>
       {state?.error && (
         <p className="text-sm text-destructive">{state.error}</p>
       )}
       <Button type="submit" className="mt-2 w-fit" disabled={pending}>
-        {pending ? "Salvataggio…" : "Salva"}
+        {pending ? common("saving") : common("save")}
       </Button>
     </form>
   );

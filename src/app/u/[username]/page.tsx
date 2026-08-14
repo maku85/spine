@@ -1,6 +1,7 @@
 import { BookMarked, BookOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { FollowButton } from "@/components/follow-button";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { PublicBookCard } from "@/components/public-book-card";
@@ -51,6 +52,7 @@ export default async function PublicProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
+  const t = await getTranslations("Public");
 
   const supabase = createPublicClient();
   const { data: profile } = await supabase
@@ -183,8 +185,8 @@ export default async function PublicProfilePage({
               render={<Link href="/signup" />}
               nativeButton={false}
               size="icon-sm"
-              aria-label="Crea la tua libreria"
-              title="Crea la tua libreria"
+              aria-label={t("createLibrary")}
+              title={t("createLibrary")}
               className="shadow-xs sm:hidden"
             >
               <Sparkles className="size-4 text-brass" />
@@ -197,7 +199,7 @@ export default async function PublicProfilePage({
               className="hidden gap-1.5 shadow-xs sm:inline-flex"
             >
               <Sparkles className="size-3.5 text-brass" />
-              Crea la tua libreria
+              {t("createLibrary")}
             </Button>
           </div>
         </div>
@@ -222,7 +224,7 @@ export default async function PublicProfilePage({
                     {name}
                   </h1>
                   <span className="inline-flex items-center gap-1 rounded-full border border-brass/40 bg-brass/10 px-2.5 py-0.5 font-mono text-[10px] tracking-widest text-brass uppercase">
-                    Curatore
+                    {t("curator")}
                   </span>
                 </div>
                 <p className="mt-1 font-mono text-xs text-muted-foreground">
@@ -242,11 +244,11 @@ export default async function PublicProfilePage({
                       <span className="font-medium text-foreground">
                         {followers.length}
                       </span>{" "}
-                      follower
+                      {t("followers")}
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-sm">
                       <DialogHeader>
-                        <DialogTitle>Follower</DialogTitle>
+                        <DialogTitle>{t("followersDialogTitle")}</DialogTitle>
                       </DialogHeader>
                       <div className="flex flex-col gap-1">
                         {followers.map((f) => (
@@ -268,11 +270,11 @@ export default async function PublicProfilePage({
                       <span className="font-medium text-foreground">
                         {following.length}
                       </span>{" "}
-                      seguiti
+                      {t("following")}
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-sm">
                       <DialogHeader>
-                        <DialogTitle>Seguiti</DialogTitle>
+                        <DialogTitle>{t("followingDialogTitle")}</DialogTitle>
                       </DialogHeader>
                       <div className="flex flex-col gap-1">
                         {following.map((f) => (
@@ -298,7 +300,7 @@ export default async function PublicProfilePage({
                   {books.length}
                 </span>
                 <span className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
-                  Volumi
+                  {t("stats.volumes")}
                 </span>
               </div>
               <div className="flex flex-col items-center rounded-xl border border-border/60 bg-background/60 px-4 py-2 text-center min-w-[75px]">
@@ -306,7 +308,7 @@ export default async function PublicProfilePage({
                   {readCount}
                 </span>
                 <span className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
-                  Letti
+                  {t("stats.read")}
                 </span>
               </div>
               {readingCount > 0 && (
@@ -315,7 +317,7 @@ export default async function PublicProfilePage({
                     {readingCount}
                   </span>
                   <span className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
-                    In lettura
+                    {t("stats.reading")}
                   </span>
                 </div>
               )}
@@ -325,7 +327,7 @@ export default async function PublicProfilePage({
                     {wishlistCount}
                   </span>
                   <span className="font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
-                    Da leggere
+                    {t("stats.toRead")}
                   </span>
                 </div>
               )}
@@ -337,11 +339,10 @@ export default async function PublicProfilePage({
           <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 py-16 text-center">
             <BookMarked className="mx-auto size-10 text-muted-foreground/50 mb-3" />
             <p className="font-serif text-lg text-foreground">
-              Questa libreria è ancora vuota
+              {t("emptyLibrary.title")}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              @{profile.username} non ha ancora aggiunto volumi al proprio
-              catalogo.
+              {t("emptyLibrary.message", { username: profile.username })}
             </p>
           </div>
         ) : (

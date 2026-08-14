@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { BookCover } from "@/components/book-cover";
 import { LikeButton } from "@/components/like-button";
 import { StatusSelect } from "@/components/status-select";
@@ -20,10 +21,12 @@ export function BookCard({
   liked: boolean | null;
   addedAt: string;
 }) {
-  const addedLabel = new Intl.DateTimeFormat("it-IT", {
-    day: "2-digit",
-    month: "short",
-  })
+  const t = useTranslations("Library");
+  const locale = useLocale();
+  const addedLabel = new Intl.DateTimeFormat(
+    locale === "en" ? "en-US" : "it-IT",
+    { day: "2-digit", month: "short" },
+  )
     .format(new Date(addedAt))
     .toUpperCase();
 
@@ -47,7 +50,7 @@ export function BookCard({
                 {title}
               </p>
               <p className="truncate text-xs font-normal text-muted-foreground mt-0.5">
-                {authors.join(", ") || "Autore sconosciuto"}
+                {authors.join(", ") || t("unknownAuthor")}
               </p>
             </Link>
             <div className="mt-2.5">

@@ -1,0 +1,290 @@
+{
+  "Metadata": {
+    "title": "Spine — your book catalog",
+    "description": "Catalog your books and track what you've read."
+  },
+  "Common": {
+    "nav": {
+      "suggestions": "Suggestions",
+      "users": "Users",
+      "searchUsers": "Search users",
+      "explore": "Explore",
+      "myPublicProfile": "My public profile",
+      "settings": "Settings",
+      "signOut": "Sign out"
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "add": "Add",
+      "added": "Added",
+      "remove": "Remove",
+      "removing": "Removing…",
+      "loading": "Loading…",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "ReadingStatus": {
+    "wishlist": "Wishlist",
+    "to_read": "To read",
+    "reading": "Reading",
+    "read": "Read"
+  },
+  "Sort": {
+    "added_desc": "Recently added",
+    "title_asc": "Title (A→Z)",
+    "title_desc": "Title (Z→A)",
+    "author_asc": "Author (A→Z)",
+    "author_desc": "Author (Z→A)"
+  },
+  "Library": {
+    "page": {
+      "title": "Your library",
+      "subtitle": "Your private catalog of reads, ratings and wants."
+    },
+    "tabs": { "all": "All" },
+    "searchPlaceholder": "Search by title or author…",
+    "liked": {
+      "all": "Any judgment",
+      "liked": "Liked",
+      "disliked": "Disliked",
+      "none": "No judgment"
+    },
+    "empty": {
+      "title": "No results found",
+      "message": "Try changing the filters or the search term."
+    },
+    "unknownAuthor": "Unknown author",
+    "status": {
+      "editAriaLabel": "Edit reading status"
+    },
+    "likeButton": {
+      "editAriaLabel": "Edit judgment",
+      "likeAriaLabel": "Like",
+      "dislikeAriaLabel": "Dislike",
+      "likedAriaLabel": "You like this, tap to edit",
+      "dislikedAriaLabel": "You dislike this, tap to edit",
+      "addJudgmentAriaLabel": "Add a judgment",
+      "unratedLabel": "Judgment"
+    },
+    "removeButton": {
+      "trigger": "Remove from library",
+      "title": "Remove \"{title}\"?",
+      "description": "The book will be removed from your catalog along with its reading status and rating. This can't be undone."
+    }
+  },
+  "Cards": {
+    "year": "Year",
+    "publisher": "Publisher",
+    "series": "Series",
+    "weeksOnList": "weeks",
+    "votes": "votes",
+    "mood": "Mood",
+    "loadingDetails": "Loading details…",
+    "descriptionExcerpt": "Description and excerpt",
+    "volumeDescription": "Volume description",
+    "noDescription": "No description available for this volume.",
+    "noSuggestedDescription": "No description available for this suggested volume."
+  },
+  "BookDetail": {
+    "backLink": "Back to catalog",
+    "similarBooks": {
+      "heading": "Similar books",
+      "cta": "Discover similar books",
+      "loading": "Looking for similar books…",
+      "empty": "No suggestions found for this book right now."
+    },
+    "addToList": {
+      "trigger": "Add to a list",
+      "title": "Add to a list",
+      "empty": "You don't have any lists yet: create one below.",
+      "newListPlaceholder": "New list…",
+      "create": "Create"
+    }
+  },
+  "Explore": {
+    "page": {
+      "title": "Explore",
+      "subtitle": "Browse and sort the catalog, or search by title, author or ISBN — even by scanning the barcode — to add a book to your library."
+    },
+    "searchPlaceholder": "Search by title, author or ISBN…",
+    "sort": {
+      "rating_desc": "Top rated",
+      "title_asc": "Title A-Z",
+      "title_desc": "Title Z-A",
+      "year_desc": "Newest",
+      "year_asc": "Oldest"
+    },
+    "catalogCountSuffix": "books in the catalog",
+    "catalogDefault": "Catalog",
+    "loadingBrowse": "Loading…",
+    "loadingSearch": "Searching…",
+    "noResults": "No results",
+    "resultsCount": "{count, plural, one {# result found} other {# results found}}",
+    "pageLabel": "Page {page} of {totalPages}",
+    "scanner": {
+      "triggerAriaLabel": "Scan barcode",
+      "title": "Frame the barcode (ISBN)",
+      "cameraError": "Couldn't access the camera."
+    }
+  },
+  "Suggestions": {
+    "notConfigured": {
+      "title": "Suggestions not configured",
+      "message": "Lists are read from the catalog imported into MongoDB. Add a MONGODB_URI to enable them."
+    },
+    "noneAvailable": {
+      "title": "No suggestions available",
+      "message": "Run `pnpm import-nyt-bestsellers`, `pnpm import-hardcover-lists` and `pnpm enrich-books` to populate the lists and rankings suggestions are generated from."
+    },
+    "page": {
+      "title": "Reading suggestions",
+      "subtitle": "New York Times bestsellers, Hardcover lists and top-rated books, from your catalog."
+    },
+    "topRated": "Top rated",
+    "allOwned": "No titles to suggest right now: you probably already have them all in your catalog."
+  },
+  "Settings": {
+    "page": {
+      "title": "Profile settings",
+      "publicProfileIntro": "Your public profile is visible at",
+      "listsHeading": "Your lists",
+      "listsBody": "Group the books in your catalog into themed lists, visible on your public profile.",
+      "manageLists": "Manage your lists",
+      "importHeading": "Import library",
+      "importBody": "Have a Bookie export? You can import it into your Spine library.",
+      "importCta": "Import from Bookie"
+    },
+    "form": {
+      "username": "Username",
+      "usernameHint": "Used in your profile's public address.",
+      "displayName": "Display name",
+      "avatarUrl": "Avatar URL",
+      "language": "Reading language",
+      "languageHint": "Italian: only books available in Italian. English: all books, with title and description in English when available (otherwise in the original language). All languages: all books, always in their original language. Also changes the interface language."
+    },
+    "languages": {
+      "it": "Italian",
+      "all": "All languages",
+      "en": "English"
+    },
+    "import": {
+      "backLink": "Back to settings",
+      "title": "Import from Bookie",
+      "body": "Upload the CSV file exported from Bookie: each book will be added to your library with the matching reading status (books marked as favorites get a 5-star rating). Books already in your library are skipped.",
+      "chooseFile": "Choose the CSV file exported from Bookie",
+      "chooseAnotherFile": "Choose another file",
+      "noBooksFound": "No books found in this file: check that it's a Bookie CSV export.",
+      "cannotReadFile": "Couldn't read the file. Check that it's a valid CSV.",
+      "booksFound": "{count, plural, one {# unique book found in the file.} other {# unique books found in the file.}}",
+      "importCount": "{count, plural, one {Import # book} other {Import # books}}",
+      "importing": "Importing… {done}/{total}",
+      "completed": "Import completed",
+      "summary": "{imported} imported, {alreadyPresent} already in library{failed, plural, =0 {} other {, # failed}}.",
+      "importAnother": "Import another file"
+    }
+  },
+  "Lists": {
+    "page": {
+      "title": "Your lists",
+      "subtitle": "Group the books in your catalog into themed lists, visible on your public profile."
+    },
+    "newListPlaceholder": "New list name…",
+    "create": "Create",
+    "noLists": "You haven't created any list yet.",
+    "renameAriaLabel": "Rename list",
+    "deleteAriaLabel": "Delete list",
+    "deleteTitle": "Delete \"{name}\"?",
+    "deleteDescription": "The books stay in your catalog, only the list is deleted. This can't be undone.",
+    "delete": "Delete",
+    "emptyList": "No books in this list yet. Add them from a book's detail page.",
+    "removeFromListAriaLabel": "Remove \"{title}\" from the list"
+  },
+  "Public": {
+    "createLibrary": "Create your library",
+    "curator": "Curator",
+    "followers": "followers",
+    "followersDialogTitle": "Followers",
+    "following": "following",
+    "followingDialogTitle": "Following",
+    "stats": {
+      "volumes": "Volumes",
+      "read": "Read",
+      "reading": "Reading",
+      "toRead": "To read"
+    },
+    "emptyLibrary": {
+      "title": "This library is still empty",
+      "message": "@{username} hasn't added any volumes to their catalog yet."
+    },
+    "followButton": { "following": "Following", "follow": "Follow" },
+    "usersPage": {
+      "title": "Search users",
+      "subtitle": "Find other readers by username or name and follow them to easily reach their profile.",
+      "searchPlaceholder": "Search by username or name…",
+      "searching": "Searching…",
+      "noResults": "No users found"
+    },
+    "library": {
+      "allVolumes": "All volumes",
+      "genres": "Genres",
+      "all": "All",
+      "searchPlaceholder": "Search by title or author…",
+      "readingStatusPlaceholder": "Reading status",
+      "empty": {
+        "title": "No books match the filters",
+        "message": "Try selecting a different reading status, a different genre, or clearing the search."
+      }
+    },
+    "unknownAuthor": "Unknown author",
+    "year": "Year",
+    "volumeDescription": "Volume description"
+  },
+  "Auth": {
+    "branding": {
+      "badge": "PERSONAL LIBRARY",
+      "heading": "A refined home for every book you love.",
+      "body": "Organize your volumes, jot down your ratings, and rediscover the pleasure of browsing your personal catalog.",
+      "edition": "Digital Edition",
+      "tagline": "Curated reading space"
+    },
+    "google": "Continue with Google",
+    "or": "or",
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your personal catalog and your reads.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in to catalog",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account yet?",
+      "signUpNow": "Sign up now"
+    },
+    "signup": {
+      "title": "Create an account",
+      "subtitle": "Start cataloging your volumes and your reads.",
+      "disabled": "Sign-ups are temporarily suspended. Try again later, or",
+      "disabledLoginLink": "sign in",
+      "disabledSuffix": "if you already have an account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    }
+  },
+  "Dashboard": {
+    "emptyTitle": "Your shelf is empty",
+    "emptyMessage": "Search for a title and add your first book to the catalog.",
+    "emptyCta": "Add your first book"
+  },
+  "Errors": {
+    "usernameFormat": "Use 3-20 characters: lowercase letters, numbers, underscores.",
+    "avatarUrl": "Enter a valid URL.",
+    "usernameTaken": "This username is already taken.",
+    "listNameEmpty": "The list name can't be empty."
+  }
+}

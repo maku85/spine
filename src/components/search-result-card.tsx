@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Star, TrendingUp } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { BookCover } from "@/components/book-cover";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,13 @@ export function SearchResultCard({
   );
   const [isLoadingDetails, startLoadDetails] = useTransition();
 
+  const common = useTranslations("Common.actions");
+  const t = useTranslations("Cards");
+  const tLibrary = useTranslations("Library");
+  const unknownAuthor = tLibrary("unknownAuthor");
+  const locale = useLocale();
+  const numberLocale = locale === "en" ? "en-US" : "it-IT";
+
   const nytInfo =
     item.source === "mongo" && item.book.nytRank ? item.book : null;
   const rating =
@@ -63,7 +71,7 @@ export function SearchResultCard({
       onClick={onAdd}
     >
       {added && <Check className="size-4" />}
-      {added ? "Aggiunto" : "Aggiungi"}
+      {added ? common("added") : common("add")}
     </Button>
   );
 
@@ -83,7 +91,7 @@ export function SearchResultCard({
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{item.title}</p>
               <p className="truncate text-sm text-muted-foreground">
-                {item.authors.join(", ") || "Autore sconosciuto"}
+                {item.authors.join(", ") || unknownAuthor}
                 {item.year && ` · ${item.year}`}
                 {primarySeries &&
                   ` · ${primarySeries.name}${primarySeries.position ? ` #${primarySeries.position}` : ""}`}
@@ -101,7 +109,7 @@ export function SearchResultCard({
                       <Star className="size-3 fill-brass text-brass" />
                       {rating.olRating?.toFixed(1)}
                       {rating.olRatingsCount &&
-                        ` (${rating.olRatingsCount.toLocaleString("it-IT")})`}
+                        ` (${rating.olRatingsCount.toLocaleString(numberLocale)})`}
                     </span>
                   )}
                 </p>
@@ -137,21 +145,21 @@ export function SearchResultCard({
               />
               <div className="flex min-w-0 flex-col gap-2 py-1">
                 <p className="text-sm font-sans font-medium text-foreground">
-                  {item.authors.join(", ") || "Autore sconosciuto"}
+                  {item.authors.join(", ") || unknownAuthor}
                 </p>
                 {item.year && (
                   <p className="font-mono text-xs text-muted-foreground">
-                    Anno: {item.year}
+                    {t("year")}: {item.year}
                   </p>
                 )}
                 {item.source === "mongo" && item.book.publisher && (
                   <p className="font-mono text-xs text-muted-foreground truncate">
-                    Editore: {item.book.publisher}
+                    {t("publisher")}: {item.book.publisher}
                   </p>
                 )}
                 {series.length > 0 && (
                   <p className="font-mono text-xs text-muted-foreground truncate">
-                    Serie:{" "}
+                    {t("series")}:{" "}
                     {series
                       .map(
                         (s) =>
@@ -168,7 +176,7 @@ export function SearchResultCard({
                     <TrendingUp className="size-3" />
                     NYT {nytInfo.nytListName} #{nytInfo.nytRank}
                     {nytInfo.nytWeeksOnList
-                      ? ` · ${nytInfo.nytWeeksOnList} settimane`
+                      ? ` · ${nytInfo.nytWeeksOnList} ${t("weeksOnList")}`
                       : ""}
                   </Badge>
                 )}
@@ -177,7 +185,7 @@ export function SearchResultCard({
                     <Star className="size-3.5 fill-brass text-brass" />
                     {rating.olRating?.toFixed(1)}
                     {rating.olRatingsCount &&
-                      ` (${rating.olRatingsCount.toLocaleString("it-IT")} voti)`}
+                      ` (${rating.olRatingsCount.toLocaleString(numberLocale)} ${t("votes")})`}
                   </p>
                 )}
                 {details && details.subjects.length > 0 && (
@@ -196,7 +204,7 @@ export function SearchResultCard({
                 {moodTags.length > 0 && (
                   <div className="mt-1 flex flex-col gap-1.5">
                     <span className="font-mono text-[9px] tracking-widest text-muted-foreground/70 uppercase">
-                      Atmosfera
+                      {t("mood")}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {moodTags.map((tag) => (
@@ -216,16 +224,15 @@ export function SearchResultCard({
 
             <div className="flex flex-col gap-2">
               <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
-                Descrizione del volume
+                {t("volumeDescription")}
               </span>
               {isLoadingDetails ? (
                 <div className="rounded-xl border border-border/50 bg-secondary/30 p-4 text-xs font-mono text-muted-foreground">
-                  Caricamento scheda in corso…
+                  {t("loadingDetails")}
                 </div>
               ) : (
                 <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 font-serif text-sm leading-relaxed text-foreground/90 max-h-[200px] overflow-y-auto pr-3">
-                  {details?.description ||
-                    "Nessuna descrizione disponibile per questo volume."}
+                  {details?.description || t("noDescription")}
                 </div>
               )}
             </div>

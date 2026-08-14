@@ -1,14 +1,25 @@
 import { BookMarked, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { BookCover } from "@/components/book-cover";
 
-const SAMPLE_BOOKS = [
+const SAMPLE_BOOKS_IT = [
   { title: "Il nome della rosa", author: "Umberto Eco" },
   { title: "Klara e il Sole", author: "Kazuo Ishiguro" },
   { title: "Cent'anni di solitudine", author: "Gabriel García Márquez" },
 ];
 
-export function AuthBrandingPanel() {
+const SAMPLE_BOOKS_EN = [
+  { title: "The Name of the Rose", author: "Umberto Eco" },
+  { title: "Klara and the Sun", author: "Kazuo Ishiguro" },
+  { title: "One Hundred Years of Solitude", author: "Gabriel García Márquez" },
+];
+
+export async function AuthBrandingPanel() {
+  const t = await getTranslations("Auth.branding");
+  const locale = await getLocale();
+  const sampleBooks = locale === "en" ? SAMPLE_BOOKS_EN : SAMPLE_BOOKS_IT;
+
   return (
     <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-b from-primary via-primary/95 to-wood/80 p-12 text-primary-foreground md:flex">
       {/* Decorative ambient background glow */}
@@ -29,20 +40,19 @@ export function AuthBrandingPanel() {
         <div>
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-brass/30 bg-brass/10 px-3 py-1 text-xs font-mono tracking-wider text-brass">
             <Sparkles className="size-3" />
-            BIBLIOTECA PERSONALE
+            {t("badge")}
           </div>
           <h2 className="max-w-md font-serif text-4xl leading-tight font-normal text-balance">
-            Una custodia raffinata per ogni libro che ami.
+            {t("heading")}
           </h2>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-primary-foreground/80">
-            Organizza i tuoi volumi, annota le tue valutazioni e riscopri il
-            piacere di sfogliare il tuo catalogo personale.
+            {t("body")}
           </p>
         </div>
 
         {/* Tactile Book Preview Stack */}
         <div className="flex items-center gap-4 pt-2">
-          {SAMPLE_BOOKS.map((book, i) => (
+          {sampleBooks.map((book, i) => (
             <div
               key={book.title}
               className="transition-transform duration-300 hover:-translate-y-2"
@@ -58,11 +68,9 @@ export function AuthBrandingPanel() {
 
       <div className="relative z-10 flex items-center justify-between border-t border-primary-foreground/15 pt-4 text-xs">
         <span className="font-mono tracking-widest text-primary-foreground/50 uppercase">
-          Edizione Digitale
+          {t("edition")}
         </span>
-        <span className="font-serif italic text-brass">
-          Curated reading space
-        </span>
+        <span className="font-serif italic text-brass">{t("tagline")}</span>
       </div>
     </div>
   );

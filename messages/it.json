@@ -1,0 +1,290 @@
+{
+  "Metadata": {
+    "title": "Spine — il tuo catalogo libri",
+    "description": "Cataloga i tuoi libri e tieni traccia di cosa hai letto."
+  },
+  "Common": {
+    "nav": {
+      "suggestions": "Suggerimenti",
+      "users": "Utenti",
+      "searchUsers": "Cerca utenti",
+      "explore": "Esplora",
+      "myPublicProfile": "Il mio profilo pubblico",
+      "settings": "Impostazioni",
+      "signOut": "Esci"
+    },
+    "actions": {
+      "save": "Salva",
+      "saving": "Salvataggio…",
+      "cancel": "Annulla",
+      "add": "Aggiungi",
+      "added": "Aggiunto",
+      "remove": "Rimuovi",
+      "removing": "Rimozione…",
+      "loading": "Caricamento…",
+      "previous": "Precedente",
+      "next": "Successiva"
+    }
+  },
+  "ReadingStatus": {
+    "wishlist": "Lista desideri",
+    "to_read": "Da leggere",
+    "reading": "In lettura",
+    "read": "Letto"
+  },
+  "Sort": {
+    "added_desc": "Aggiunti di recente",
+    "title_asc": "Titolo (A→Z)",
+    "title_desc": "Titolo (Z→A)",
+    "author_asc": "Autore (A→Z)",
+    "author_desc": "Autore (Z→A)"
+  },
+  "Library": {
+    "page": {
+      "title": "La tua libreria",
+      "subtitle": "Catalogo privato delle tue letture, recensioni e desideri."
+    },
+    "tabs": { "all": "Tutti" },
+    "searchPlaceholder": "Cerca per titolo o autore…",
+    "liked": {
+      "all": "Qualsiasi giudizio",
+      "liked": "Mi piace",
+      "disliked": "Non mi piace",
+      "none": "Senza giudizio"
+    },
+    "empty": {
+      "title": "Nessun risultato trovato",
+      "message": "Prova a modificare i filtri o il termine di ricerca."
+    },
+    "unknownAuthor": "Autore sconosciuto",
+    "status": {
+      "editAriaLabel": "Modifica stato di lettura"
+    },
+    "likeButton": {
+      "editAriaLabel": "Modifica giudizio",
+      "likeAriaLabel": "Mi piace",
+      "dislikeAriaLabel": "Non mi piace",
+      "likedAriaLabel": "Ti piace, tocca per modificare",
+      "dislikedAriaLabel": "Non ti piace, tocca per modificare",
+      "addJudgmentAriaLabel": "Aggiungi un giudizio",
+      "unratedLabel": "Giudizio"
+    },
+    "removeButton": {
+      "trigger": "Rimuovi dalla libreria",
+      "title": "Rimuovere «{title}»?",
+      "description": "Il libro verrà tolto dal tuo catalogo insieme allo stato di lettura e alla valutazione. Non si può annullare."
+    }
+  },
+  "Cards": {
+    "year": "Anno",
+    "publisher": "Editore",
+    "series": "Serie",
+    "weeksOnList": "settimane",
+    "votes": "voti",
+    "mood": "Atmosfera",
+    "loadingDetails": "Caricamento scheda in corso…",
+    "descriptionExcerpt": "Descrizione ed estratto",
+    "volumeDescription": "Descrizione del volume",
+    "noDescription": "Nessuna descrizione disponibile per questo volume.",
+    "noSuggestedDescription": "Nessuna descrizione disponibile per questo volume suggerito."
+  },
+  "BookDetail": {
+    "backLink": "Torna al catalogo",
+    "similarBooks": {
+      "heading": "Libri simili",
+      "cta": "Scopri libri simili",
+      "loading": "Cerco libri simili…",
+      "empty": "Nessun suggerimento trovato per questo libro al momento."
+    },
+    "addToList": {
+      "trigger": "Aggiungi a una lista",
+      "title": "Aggiungi a una lista",
+      "empty": "Non hai ancora nessuna lista: creane una qui sotto.",
+      "newListPlaceholder": "Nuova lista…",
+      "create": "Crea"
+    }
+  },
+  "Explore": {
+    "page": {
+      "title": "Esplora",
+      "subtitle": "Sfoglia e ordina il catalogo, oppure cerca per titolo, autore o ISBN — anche inquadrando il codice a barre — per aggiungere un libro alla tua libreria."
+    },
+    "searchPlaceholder": "Cerca per titolo, autore o ISBN…",
+    "sort": {
+      "rating_desc": "Più votati",
+      "title_asc": "Titolo A-Z",
+      "title_desc": "Titolo Z-A",
+      "year_desc": "Più recenti",
+      "year_asc": "Più datati"
+    },
+    "catalogCountSuffix": "libri nel catalogo",
+    "catalogDefault": "Catalogo",
+    "loadingBrowse": "Caricamento…",
+    "loadingSearch": "Ricerca in corso…",
+    "noResults": "Nessun risultato",
+    "resultsCount": "{count, plural, one {# risultato trovato} other {# risultati trovati}}",
+    "pageLabel": "Pagina {page} di {totalPages}",
+    "scanner": {
+      "triggerAriaLabel": "Scansiona codice a barre",
+      "title": "Inquadra il codice a barre (ISBN)",
+      "cameraError": "Impossibile accedere alla fotocamera."
+    }
+  },
+  "Suggestions": {
+    "notConfigured": {
+      "title": "Suggerimenti non configurati",
+      "message": "Le liste vengono lette dal catalogo importato in MongoDB. Aggiungi una MONGODB_URI per attivarle."
+    },
+    "noneAvailable": {
+      "title": "Nessun suggerimento disponibile",
+      "message": "Lancia `pnpm import-nyt-bestsellers`, `pnpm import-hardcover-lists` e `pnpm enrich-books` per popolare le liste e le classifiche da cui vengono generati i suggerimenti."
+    },
+    "page": {
+      "title": "Suggerimenti di lettura",
+      "subtitle": "Bestseller New York Times, liste Hardcover e libri più votati, dal tuo catalogo."
+    },
+    "topRated": "Più votati",
+    "allOwned": "Non ho trovato titoli da suggerirti al momento: probabilmente li hai già tutti in catalogo."
+  },
+  "Settings": {
+    "page": {
+      "title": "Impostazioni profilo",
+      "publicProfileIntro": "Il tuo profilo pubblico è visibile su",
+      "listsHeading": "Le tue liste",
+      "listsBody": "Raggruppa i libri del tuo catalogo in liste a tema, visibili sul tuo profilo pubblico.",
+      "manageLists": "Gestisci le tue liste",
+      "importHeading": "Importa libreria",
+      "importBody": "Hai un export di Bookie? Puoi importarlo nella tua libreria Spine.",
+      "importCta": "Importa da Bookie"
+    },
+    "form": {
+      "username": "Username",
+      "usernameHint": "Usato nell'indirizzo pubblico del tuo profilo.",
+      "displayName": "Nome visualizzato",
+      "avatarUrl": "URL avatar",
+      "language": "Lingua di lettura",
+      "languageHint": "Italiano: solo i libri disponibili in italiano. Inglese: tutti i libri, con titolo e trama in inglese quando disponibili (altrimenti nella lingua originale). Tutte le lingue: tutti i libri, sempre nella loro lingua originale. Cambia anche la lingua dell'interfaccia."
+    },
+    "languages": {
+      "it": "Italiano",
+      "all": "Tutte le lingue",
+      "en": "Inglese"
+    },
+    "import": {
+      "backLink": "Torna alle impostazioni",
+      "title": "Importa da Bookie",
+      "body": "Carica il file CSV esportato da Bookie: ogni libro verrà aggiunto alla tua libreria con lo stato di lettura corrispondente (i libri contrassegnati come preferiti ricevono una valutazione a 5 stelle). I libri già presenti in libreria vengono saltati.",
+      "chooseFile": "Scegli il file CSV esportato da Bookie",
+      "chooseAnotherFile": "Scegli un altro file",
+      "noBooksFound": "Nessun libro trovato in questo file: controlla che sia un export CSV di Bookie.",
+      "cannotReadFile": "Impossibile leggere il file. Controlla che sia un CSV valido.",
+      "booksFound": "{count, plural, one {# libro unico trovato nel file.} other {# libri unici trovati nel file.}}",
+      "importCount": "{count, plural, one {Importa # libro} other {Importa # libri}}",
+      "importing": "Importazione in corso… {done}/{total}",
+      "completed": "Importazione completata",
+      "summary": "{imported} importati, {alreadyPresent} già presenti in libreria{failed, plural, =0 {} other {, # falliti}}.",
+      "importAnother": "Importa un altro file"
+    }
+  },
+  "Lists": {
+    "page": {
+      "title": "Le tue liste",
+      "subtitle": "Raggruppa i libri del tuo catalogo in liste a tema, visibili sul tuo profilo pubblico."
+    },
+    "newListPlaceholder": "Nome nuova lista…",
+    "create": "Crea",
+    "noLists": "Non hai ancora creato nessuna lista.",
+    "renameAriaLabel": "Rinomina lista",
+    "deleteAriaLabel": "Elimina lista",
+    "deleteTitle": "Eliminare «{name}»?",
+    "deleteDescription": "I libri restano nel tuo catalogo, viene eliminata solo la lista. Non si può annullare.",
+    "delete": "Elimina",
+    "emptyList": "Nessun libro in questa lista. Aggiungili dalla pagina di dettaglio di un libro.",
+    "removeFromListAriaLabel": "Rimuovi «{title}» dalla lista"
+  },
+  "Public": {
+    "createLibrary": "Crea la tua libreria",
+    "curator": "Curatore",
+    "followers": "follower",
+    "followersDialogTitle": "Follower",
+    "following": "seguiti",
+    "followingDialogTitle": "Seguiti",
+    "stats": {
+      "volumes": "Volumi",
+      "read": "Letti",
+      "reading": "In lettura",
+      "toRead": "Da leggere"
+    },
+    "emptyLibrary": {
+      "title": "Questa libreria è ancora vuota",
+      "message": "@{username} non ha ancora aggiunto volumi al proprio catalogo."
+    },
+    "followButton": { "following": "Seguito", "follow": "Segui" },
+    "usersPage": {
+      "title": "Cerca utenti",
+      "subtitle": "Trova altri lettori per username o nome e seguili per raggiungere facilmente il loro profilo.",
+      "searchPlaceholder": "Cerca per username o nome…",
+      "searching": "Ricerca in corso…",
+      "noResults": "Nessun utente trovato"
+    },
+    "library": {
+      "allVolumes": "Tutti i volumi",
+      "genres": "Generi",
+      "all": "Tutti",
+      "searchPlaceholder": "Cerca per titolo o autore…",
+      "readingStatusPlaceholder": "Stato lettura",
+      "empty": {
+        "title": "Nessun libro corrisponde ai filtri",
+        "message": "Prova a selezionare un altro stato di lettura, un altro genere, o a cancellare la ricerca."
+      }
+    },
+    "unknownAuthor": "Autore sconosciuto",
+    "year": "Anno",
+    "volumeDescription": "Descrizione del volume"
+  },
+  "Auth": {
+    "branding": {
+      "badge": "BIBLIOTECA PERSONALE",
+      "heading": "Una custodia raffinata per ogni libro che ami.",
+      "body": "Organizza i tuoi volumi, annota le tue valutazioni e riscopri il piacere di sfogliare il tuo catalogo personale.",
+      "edition": "Edizione Digitale",
+      "tagline": "Curated reading space"
+    },
+    "google": "Continua con Google",
+    "or": "oppure",
+    "login": {
+      "title": "Bentornato",
+      "subtitle": "Accedi al tuo catalogo personale ed alle tue letture.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Accedi al catalogo",
+      "submitting": "Accesso in corso…",
+      "noAccount": "Non hai ancora un account?",
+      "signUpNow": "Registrati ora"
+    },
+    "signup": {
+      "title": "Crea un account",
+      "subtitle": "Inizia a catalogare i tuoi volumi e le tue letture.",
+      "disabled": "Le registrazioni sono temporaneamente sospese. Riprova più tardi, oppure",
+      "disabledLoginLink": "accedi",
+      "disabledSuffix": "se hai già un account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Crea account",
+      "submitting": "Creazione in corso…",
+      "hasAccount": "Hai già un account?",
+      "login": "Accedi"
+    }
+  },
+  "Dashboard": {
+    "emptyTitle": "Il tuo scaffale è vuoto",
+    "emptyMessage": "Cerca un titolo e aggiungi il tuo primo libro al catalogo.",
+    "emptyCta": "Aggiungi il tuo primo libro"
+  },
+  "Errors": {
+    "usernameFormat": "Usa 3-20 caratteri: lettere minuscole, numeri, underscore.",
+    "avatarUrl": "Inserisci un URL valido.",
+    "usernameTaken": "Questo username è già in uso.",
+    "listNameEmpty": "Il nome della lista non può essere vuoto."
+  }
+}

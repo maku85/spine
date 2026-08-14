@@ -3,6 +3,7 @@
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { ScanBarcode } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ export function IsbnScannerDialog({
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
     null,
   );
+  const t = useTranslations("Explore.scanner");
 
   const onDetectedRef = useRef(onDetected);
   onDetectedRef.current = onDetected;
@@ -49,13 +51,13 @@ export function IsbnScannerDialog({
         controls = c;
         if (stopped) controls.stop();
       })
-      .catch(() => setError("Impossibile accedere alla fotocamera."));
+      .catch(() => setError(t("cameraError")));
 
     return () => {
       stopped = true;
       controls?.stop();
     };
-  }, [open, videoElement]);
+  }, [open, videoElement, t]);
 
   return (
     <Dialog
@@ -71,7 +73,7 @@ export function IsbnScannerDialog({
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Scansiona codice a barre"
+            aria-label={t("triggerAriaLabel")}
           />
         }
       >
@@ -79,7 +81,7 @@ export function IsbnScannerDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Inquadra il codice a barre (ISBN)</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
         {error ? (
           <p className="text-sm text-destructive">{error}</p>

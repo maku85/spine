@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { SettingsForm } from "@/components/settings-form";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,17 +11,19 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name, avatar_url")
+    .select("username, display_name, avatar_url, language")
     .eq("id", user?.id ?? "")
     .single();
 
   if (!profile) return null;
 
+  const t = await getTranslations("Settings.page");
+
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-serif text-2xl">Impostazioni profilo</h1>
+      <h1 className="font-serif text-2xl">{t("title")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">
-        Il tuo profilo pubblico è visibile su{" "}
+        {t("publicProfileIntro")}{" "}
         <Link
           href={`/u/${profile.username}`}
           className="underline underline-offset-2"
@@ -33,32 +36,32 @@ export default async function SettingsPage() {
         username={profile.username}
         displayName={profile.display_name}
         avatarUrl={profile.avatar_url}
+        language={profile.language}
       />
 
       <div className="mt-8 border-t border-border/60 pt-6">
-        <h2 className="font-serif text-lg">Le tue liste</h2>
+        <h2 className="font-serif text-lg">{t("listsHeading")}</h2>
         <p className="mt-1 mb-3 text-sm text-muted-foreground">
-          Raggruppa i libri del tuo catalogo in liste a tema, visibili sul tuo
-          profilo pubblico.
+          {t("listsBody")}
         </p>
         <Link
           href="/lists"
           className="text-sm font-medium text-primary underline underline-offset-2"
         >
-          Gestisci le tue liste
+          {t("manageLists")}
         </Link>
       </div>
 
       <div className="mt-8 border-t border-border/60 pt-6">
-        <h2 className="font-serif text-lg">Importa libreria</h2>
+        <h2 className="font-serif text-lg">{t("importHeading")}</h2>
         <p className="mt-1 mb-3 text-sm text-muted-foreground">
-          Hai un export di Bookie? Puoi importarlo nella tua libreria Spine.
+          {t("importBody")}
         </p>
         <Link
           href="/import"
           className="text-sm font-medium text-primary underline underline-offset-2"
         >
-          Importa da Bookie
+          {t("importCta")}
         </Link>
       </div>
     </div>

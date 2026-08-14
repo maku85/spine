@@ -1,5 +1,5 @@
 export type ReadingStatus = "wishlist" | "to_read" | "reading" | "read";
-export type PreferredLanguage = "it" | "all";
+export type PreferredLanguage = "it" | "all" | "en";
 
 export type Database = {
   public: {
