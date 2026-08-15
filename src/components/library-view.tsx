@@ -181,7 +181,9 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
             onValueChange={(value) => setLikedFilter(value ?? "all")}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:w-[170px] sm:flex-none">
-              <SelectValue />
+              <SelectValue>
+                {(value) => t(`liked.${value as (typeof LIKED_KEYS)[number]}`)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {LIKED_KEYS.map((value) => (
@@ -196,7 +198,7 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
             onValueChange={(value) => setSort(value as SortKey)}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:w-[170px] sm:flex-none">
-              <SelectValue />
+              <SelectValue>{(value) => tSort(value as SortKey)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {SORT_KEYS.map((value) => (

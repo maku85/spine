@@ -246,9 +246,11 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
             onValueChange={(value) => selectStatus(value ?? "all")}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:hidden">
-              <SelectValue
-                placeholder={t("library.readingStatusPlaceholder")}
-              />
+              <SelectValue placeholder={t("library.readingStatusPlaceholder")}>
+                {(value) =>
+                  value === "all" ? t("library.allVolumes") : tStatus(value)
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-xs">
@@ -275,7 +277,7 @@ export function PublicLibraryView({ books }: { books: PublicLibraryBook[] }) {
             onValueChange={(value) => setSort(value as SortKey)}
           >
             <SelectTrigger className="flex-1 min-w-0 bg-background/80 border-border/70 text-xs sm:w-[170px] sm:flex-none">
-              <SelectValue />
+              <SelectValue>{(value) => tSort(value as SortKey)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {SORT_KEYS.map((value) => (

@@ -136,7 +136,9 @@ export function BookSearch({
             }}
           >
             <SelectTrigger className="w-[160px] bg-background/80 border-border/70 text-xs">
-              <SelectValue />
+              <SelectValue>
+                {(value) => tSort(value as BrowseSortKey)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {SORT_KEYS.map((value) => (

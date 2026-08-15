@@ -57,7 +57,7 @@ export function StatusSelect({
       }
     >
       <SelectTrigger className="w-40" size="sm">
-        <SelectValue />
+        <SelectValue>{(value) => t(value as ReadingStatus)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {STATUS_ORDER.map((value) => (

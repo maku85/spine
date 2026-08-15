@@ -63,7 +63,9 @@ export function SettingsForm({
         <Label htmlFor="language">{t("language")}</Label>
         <Select name="language" defaultValue={language}>
           <SelectTrigger id="language" className="w-full">
-            <SelectValue />
+            <SelectValue>
+              {(value) => tLanguages(value as PreferredLanguage)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LANGUAGE_KEYS.map((value) => (
