@@ -54,7 +54,7 @@ async function fetchOpenLibrary(url: string): Promise<unknown> {
 async function fetchWithRetry(
   url: string,
   label: string,
-): Promise<Response | null> {
+): Promise<Response | null | undefined> {
   for (let attempt = 0; ; attempt++) {
     let res: Response;
     try {
@@ -64,7 +64,7 @@ async function fetchWithRetry(
     } catch {
       if (attempt >= MAX_RETRIES) {
         console.warn(`  ${label}: nessuna risposta (timeout), salto.`);
-        return null;
+        return undefined;
       }
       await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
       continue;
@@ -76,7 +76,7 @@ async function fetchWithRetry(
     const retryable = RETRYABLE_STATUSES.has(res.status);
     if (!retryable || attempt >= MAX_RETRIES) {
       console.warn(`  ${label}: risposta ${res.status}, salto.`);
-      return null;
+      return undefined;
     }
     await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
   }
@@ -192,7 +192,7 @@ export async function findItalianEditionIsbns(
 export async function fetchGoogleBooksByIsbn(
   isbn: string,
   apiKey: string | undefined,
-): Promise<OriginalMatch | null> {
+): Promise<OriginalMatch | null | undefined> {
   const params = new URLSearchParams({ q: `isbn:${isbn}` });
   if (apiKey) params.set("key", apiKey);
 
@@ -201,6 +201,7 @@ export async function fetchGoogleBooksByIsbn(
     `Google Books isbn:${isbn}`,
   );
   await sleep(GOOGLE_REQUEST_DELAY_MS);
+  if (res === undefined) return undefined;
   if (!res) return null;
 
   const info = (await res.json()).items?.[0]?.volumeInfo;

@@ -74,6 +74,7 @@ async function main() {
   let withTranslation = 0;
   let skippedCollision = 0;
   let skippedNonFiction = 0;
+  let skippedTransient = 0;
 
   try {
     const db = client.db(DB_NAME);
@@ -255,7 +256,15 @@ async function main() {
     for (const isbn of newCandidates) {
       const entry = entryByIsbn.get(isbn) as ListEntry;
 
-      const original = (await fetchGoogleBooksByIsbn(isbn, googleApiKey)) ?? {
+      const fetched = await fetchGoogleBooksByIsbn(isbn, googleApiKey);
+      if (fetched === undefined) {
+        skippedTransient += 1;
+        console.log(
+          `  · ${entry.title}: Google Books non raggiungibile ora, riprovo al prossimo giro`,
+        );
+        continue;
+      }
+      const original = fetched ?? {
         title: entry.title,
         authors: entry.author ? [entry.author] : [],
         year: null,
@@ -348,7 +357,7 @@ async function main() {
   }
 
   console.log(
-    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${inserted} nuovi libri inseriti, ${upgraded} arricchiti con traduzione italiana ora, ${withTranslation} con traduzione italiana in totale, ${skippedCollision} scartati per collisione isbn, ${skippedNonFiction} scartati perché non narrativa.`,
+    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${inserted} nuovi libri inseriti, ${upgraded} arricchiti con traduzione italiana ora, ${withTranslation} con traduzione italiana in totale, ${skippedCollision} scartati per collisione isbn, ${skippedNonFiction} scartati perché non narrativa, ${skippedTransient} rimandati al prossimo giro (Google Books non raggiungibile).`,
   );
 }
 
