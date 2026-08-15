@@ -22,7 +22,7 @@ function buildSchema(t: Awaited<ReturnType<typeof getTranslations>>) {
       .union([z.url({ error: t("avatarUrl") }), z.literal("")])
       .optional()
       .transform((value) => value || null),
-    language: z.enum(["it", "all", "en"]),
+    language: z.enum(["it", "en"]),
   });
 }
 

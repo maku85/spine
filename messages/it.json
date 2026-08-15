@@ -169,11 +169,10 @@
       "displayName": "Nome visualizzato",
       "avatarUrl": "URL avatar",
       "language": "Lingua di lettura",
-      "languageHint": "Vedi sempre l'intero catalogo: questa scelta cambia solo la lingua del testo mostrato (e dell'interfaccia). Italiano: titolo e trama in italiano quando disponibili, altrimenti in inglese. Inglese e Tutte le lingue: in inglese quando disponibile, altrimenti in italiano."
+      "languageHint": "Vedi sempre l'intero catalogo: questa scelta cambia solo la lingua del testo mostrato (e dell'interfaccia). Italiano: titolo e trama in italiano quando disponibili, altrimenti in inglese. Inglese: in inglese quando disponibile, altrimenti in italiano."
     },
     "languages": {
       "it": "Italiano",
-      "all": "Tutte le lingue",
       "en": "Inglese"
     },
     "import": {

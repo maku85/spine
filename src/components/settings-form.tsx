@@ -15,7 +15,7 @@ import {
 import { updateProfile } from "@/lib/actions/profile";
 import type { PreferredLanguage } from "@/lib/supabase/database.types";
 
-const LANGUAGE_KEYS: PreferredLanguage[] = ["it", "all", "en"];
+const LANGUAGE_KEYS: PreferredLanguage[] = ["it", "en"];
 
 export function SettingsForm({
   username,
