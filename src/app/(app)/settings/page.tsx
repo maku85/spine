@@ -13,7 +13,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name, avatar_url, language")
+    .select("username, display_name, avatar_url, language, card_view")
     .eq("id", user?.id ?? "")
     .single();
 
@@ -39,6 +39,7 @@ export default async function SettingsPage() {
         displayName={profile.display_name}
         avatarUrl={profile.avatar_url}
         language={profile.language}
+        cardView={profile.card_view}
       />
 
       <div className="mt-8 border-t border-border/60 pt-6">

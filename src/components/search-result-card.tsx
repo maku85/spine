@@ -25,12 +25,14 @@ export function SearchResultCard({
   isAdding,
   isAuthenticated,
   onAdd,
+  compact = false,
 }: {
   item: SearchItem;
   added: boolean;
   isAdding: boolean;
   isAuthenticated: boolean;
   onAdd: () => void;
+  compact?: boolean;
 }) {
   const [details, setDetails] = useState<WorkDetails | null>(
     item.source === "mongo"
@@ -81,64 +83,86 @@ export function SearchResultCard({
   ) : null;
 
   return (
-    <BookCardShell>
+    <BookCardShell compact={compact}>
       <Dialog onOpenChange={handleOpenChange}>
-        <DialogTrigger render={<button type="button" className="shrink-0" />}>
-          <BookCover title={item.title} author={item.authors[0]} size="md" />
+        <DialogTrigger
+          render={
+            <button
+              type="button"
+              className={compact ? undefined : "shrink-0"}
+            />
+          }
+        >
+          <BookCover
+            title={item.title}
+            author={item.authors[0]}
+            size={compact ? "compact" : "md"}
+          />
         </DialogTrigger>
-        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-          <DialogTrigger
-            render={
-              <button type="button" className="group/link min-w-0 text-left" />
-            }
-          >
-            <p className="truncate font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover/link:text-primary">
-              {item.title}
-            </p>
-            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
-              {item.authors.join(", ") || unknownAuthor}
-              {item.year && ` · ${item.year}`}
-              {primarySeries &&
-                ` · ${primarySeries.name}${primarySeries.position ? ` #${primarySeries.position}` : ""}`}
-            </p>
-            {(nytInfo || rating) && (
-              <p className="mt-1 flex items-center gap-2 text-xs font-medium text-brass">
-                {nytInfo && (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="size-3" />
-                    NYT #{nytInfo.nytRank}
-                  </span>
-                )}
-                {rating && (
-                  <span className="flex items-center gap-1">
-                    <Star className="size-3 fill-brass text-brass" />
-                    {rating.rating?.toFixed(1)}
-                    {rating.ratingsCount &&
-                      ` (${rating.ratingsCount.toLocaleString(numberLocale)})`}
-                  </span>
-                )}
-              </p>
-            )}
-            {moodTags.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {moodTags.slice(0, 3).map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className="bg-secondary/40 font-mono text-[9px] tracking-widest text-muted-foreground uppercase border-border/60"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </DialogTrigger>
-          {addButton && (
-            <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/40 pt-2.5">
+        {compact ? (
+          addButton && (
+            <div className="flex w-full justify-center border-t border-border/40 pt-2">
               {addButton}
             </div>
-          )}
-        </div>
+          )
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+            <DialogTrigger
+              render={
+                <button
+                  type="button"
+                  className="group/link min-w-0 text-left"
+                />
+              }
+            >
+              <p className="truncate font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover/link:text-primary">
+                {item.title}
+              </p>
+              <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+                {item.authors.join(", ") || unknownAuthor}
+                {item.year && ` · ${item.year}`}
+                {primarySeries &&
+                  ` · ${primarySeries.name}${primarySeries.position ? ` #${primarySeries.position}` : ""}`}
+              </p>
+              {(nytInfo || rating) && (
+                <p className="mt-1 flex items-center gap-2 text-xs font-medium text-brass">
+                  {nytInfo && (
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="size-3" />
+                      NYT #{nytInfo.nytRank}
+                    </span>
+                  )}
+                  {rating && (
+                    <span className="flex items-center gap-1">
+                      <Star className="size-3 fill-brass text-brass" />
+                      {rating.rating?.toFixed(1)}
+                      {rating.ratingsCount &&
+                        ` (${rating.ratingsCount.toLocaleString(numberLocale)})`}
+                    </span>
+                  )}
+                </p>
+              )}
+              {moodTags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {moodTags.slice(0, 3).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="bg-secondary/40 font-mono text-[9px] tracking-widest text-muted-foreground uppercase border-border/60"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </DialogTrigger>
+            {addButton && (
+              <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/40 pt-2.5">
+                {addButton}
+              </div>
+            )}
+          </div>
+        )}
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl font-normal">

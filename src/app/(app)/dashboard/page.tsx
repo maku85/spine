@@ -14,6 +14,12 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("card_view")
+    .eq("id", user.id)
+    .single();
+
   const { data: userBooks, error } = await supabase
     .from("user_books")
     .select("id, status, liked, added_at, books(title, authors)")
@@ -58,5 +64,7 @@ export default async function DashboardPage() {
     });
   }
 
-  return <LibraryView books={books} />;
+  return (
+    <LibraryView books={books} compact={profile?.card_view === "compact"} />
+  );
 }

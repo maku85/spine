@@ -205,11 +205,17 @@
       "displayName": "Display name",
       "avatarUrl": "Avatar URL",
       "language": "Reading language",
-      "languageHint": "You always see the full catalog: this only changes the language of the text shown (and of the interface). Italian: title and description in Italian when available, otherwise in English. English: in English when available, otherwise in Italian."
+      "languageHint": "You always see the full catalog: this only changes the language of the text shown (and of the interface). Italian: title and description in Italian when available, otherwise in English. English: in English when available, otherwise in Italian.",
+      "cardView": "Book display",
+      "cardViewHint": "Comfortable shows the cover with title, author and actions. Compact shows only a larger cover, with any actions below."
     },
     "languages": {
       "it": "Italian",
       "en": "English"
+    },
+    "cardViews": {
+      "comfortable": "Comfortable",
+      "compact": "Compact"
     },
     "import": {
       "backLink": "Back to settings",

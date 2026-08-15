@@ -20,11 +20,13 @@ export function SuggestionListSection({
   items,
   defaultVisible = DEFAULT_VISIBLE,
   isAuthenticated,
+  compact = false,
 }: {
   label: string;
   items: SectionItem[];
   defaultVisible?: number;
   isAuthenticated: boolean;
+  compact?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const t = useTranslations("Suggestions");
@@ -37,7 +39,13 @@ export function SuggestionListSection({
       <h2 className="mb-4 font-mono text-xs tracking-wide text-muted-foreground uppercase">
         {label}
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={
+          compact
+            ? "flex flex-wrap gap-4"
+            : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        }
+      >
         {visibleItems.map(({ book, detail }) => (
           <SuggestionCard
             key={book.mongoId}
@@ -48,6 +56,7 @@ export function SuggestionListSection({
             averageRating={book.rating}
             ratingsCount={book.ratingsCount}
             isAuthenticated={isAuthenticated}
+            compact={compact}
             onAdd={addMongoBookToCatalog.bind(null, book)}
           />
         ))}

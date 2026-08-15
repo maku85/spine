@@ -20,10 +20,12 @@ function SectionGroup({
   sections,
   defaultVisible,
   isAuthenticated,
+  compact,
 }: {
   sections: Section[];
   defaultVisible?: number;
   isAuthenticated: boolean;
+  compact: boolean;
 }) {
   const t = useTranslations("Suggestions");
 
@@ -42,6 +44,7 @@ function SectionGroup({
           items={section.items}
           defaultVisible={defaultVisible}
           isAuthenticated={isAuthenticated}
+          compact={compact}
         />
       ))}
     </div>
@@ -53,11 +56,13 @@ export function SuggestionsTabs({
   hardcoverSections,
   topRatedSection,
   isAuthenticated,
+  compact = false,
 }: {
   nytSections: Section[];
   hardcoverSections: Section[];
   topRatedSection: Section;
   isAuthenticated: boolean;
+  compact?: boolean;
 }) {
   const t = useTranslations("Suggestions");
 
@@ -72,12 +77,14 @@ export function SuggestionsTabs({
         <SectionGroup
           sections={nytSections}
           isAuthenticated={isAuthenticated}
+          compact={compact}
         />
       </TabsPanel>
       <TabsPanel value="hardcover" className="mt-8">
         <SectionGroup
           sections={hardcoverSections}
           isAuthenticated={isAuthenticated}
+          compact={compact}
         />
       </TabsPanel>
       <TabsPanel value="top-rated" className="mt-8">
@@ -85,6 +92,7 @@ export function SuggestionsTabs({
           sections={topRatedSection.items.length > 0 ? [topRatedSection] : []}
           defaultVisible={topRatedSection.items.length}
           isAuthenticated={isAuthenticated}
+          compact={compact}
         />
       </TabsPanel>
     </Tabs>

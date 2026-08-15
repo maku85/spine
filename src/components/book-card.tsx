@@ -13,6 +13,7 @@ export function BookCard({
   status,
   liked,
   addedAt,
+  compact = false,
 }: {
   userBookId: string;
   title: string;
@@ -20,6 +21,7 @@ export function BookCard({
   status: ReadingStatus;
   liked: boolean | null;
   addedAt: string;
+  compact?: boolean;
 }) {
   const t = useTranslations("Library");
   const locale = useLocale();
@@ -29,6 +31,23 @@ export function BookCard({
   )
     .format(new Date(addedAt))
     .toUpperCase();
+
+  if (compact) {
+    return (
+      <BookCardShell compact>
+        <Link href={`/books/${userBookId}`}>
+          <BookCover title={title} author={authors[0]} size="compact" />
+        </Link>
+        <StatusSelect userBookId={userBookId} status={status} />
+        <div className="flex w-full items-center justify-between gap-2 border-t border-border/40 pt-2">
+          <LikeButton userBookId={userBookId} liked={liked} />
+          <span className="font-mono text-[9px] font-medium tracking-widest text-muted-foreground/70 uppercase">
+            {addedLabel}
+          </span>
+        </div>
+      </BookCardShell>
+    );
+  }
 
   return (
     <BookCardShell>

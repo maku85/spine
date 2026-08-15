@@ -41,7 +41,13 @@ const SORT_KEYS: SortKey[] = [
 ];
 const LIKED_KEYS = ["all", "liked", "disliked", "none"] as const;
 
-export function LibraryView({ books }: { books: LibraryBook[] }) {
+export function LibraryView({
+  books,
+  compact = false,
+}: {
+  books: LibraryBook[];
+  compact?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("added_desc");
   const [likedFilter, setLikedFilter] = useState("all");
@@ -240,9 +246,15 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
                     <span className="h-[1px] flex-1 bg-gradient-to-r from-border via-border/50 to-transparent" />
                   </h2>
                 ))}
-              <div className="grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={
+                  compact
+                    ? "flex flex-wrap gap-4"
+                    : "grid gap-4.5 sm:grid-cols-2 lg:grid-cols-3"
+                }
+              >
                 {section.books.map((book) => (
-                  <BookCard key={book.userBookId} {...book} />
+                  <BookCard key={book.userBookId} {...book} compact={compact} />
                 ))}
               </div>
             </div>

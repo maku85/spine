@@ -1,5 +1,6 @@
 export type ReadingStatus = "wishlist" | "to_read" | "reading" | "read";
 export type PreferredLanguage = "it" | "en";
+export type CardViewMode = "comfortable" | "compact";
 
 export type Database = {
   public: {
@@ -75,6 +76,7 @@ export type Database = {
           display_name: string | null;
           avatar_url: string | null;
           language: PreferredLanguage;
+          card_view: CardViewMode;
           created_at: string;
           updated_at: string;
         };
@@ -84,6 +86,7 @@ export type Database = {
           display_name?: string | null;
           avatar_url?: string | null;
           language?: PreferredLanguage;
+          card_view?: CardViewMode;
           created_at?: string;
           updated_at?: string;
         };

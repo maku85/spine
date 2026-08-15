@@ -11,10 +11,11 @@ export default async function ExplorePage() {
   } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("language")
+    .select("language, card_view")
     .eq("id", user?.id ?? "")
     .single();
   const preferredLanguage = profile?.language ?? "it";
+  const compact = profile?.card_view === "compact";
   const t = await getTranslations("Explore");
 
   return (
@@ -32,6 +33,7 @@ export default async function ExplorePage() {
           <BookSearch
             preferredLanguage={preferredLanguage}
             isAuthenticated={Boolean(user)}
+            compact={compact}
           />
         </TabsPanel>
         <TabsPanel value="users">

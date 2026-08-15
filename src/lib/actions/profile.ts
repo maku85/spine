@@ -23,6 +23,7 @@ function buildSchema(t: Awaited<ReturnType<typeof getTranslations>>) {
       .optional()
       .transform((value) => value || null),
     language: z.enum(["it", "en"]),
+    cardView: z.enum(["comfortable", "compact"]),
   });
 }
 
@@ -47,13 +48,15 @@ export async function updateProfile(
     displayName: formData.get("displayName"),
     avatarUrl: formData.get("avatarUrl"),
     language: rawLanguage,
+    cardView: formData.get("cardView"),
   });
 
   if (!validated.success) {
     return { error: validated.error.issues[0].message };
   }
 
-  const { username, displayName, avatarUrl, language } = validated.data;
+  const { username, displayName, avatarUrl, language, cardView } =
+    validated.data;
 
   const { error } = await supabase
     .from("profiles")
@@ -62,6 +65,7 @@ export async function updateProfile(
       display_name: displayName,
       avatar_url: avatarUrl,
       language,
+      card_view: cardView,
     })
     .eq("id", user.id);
 

@@ -4,12 +4,13 @@ import { cn } from "@/lib/utils";
 const SIZE_CLASSES = {
   sm: "h-[80px] w-[54px] gap-1 p-2 rounded-[2px]",
   md: "h-[136px] w-[92px] gap-1.5 p-3.5 rounded-sm",
+  compact: "h-[180px] w-[122px] gap-2 p-4 rounded-sm",
   lg: "h-[280px] w-[188px] gap-3 p-6 rounded-md",
 } as const;
 
 type Tier = { maxLength: number; font: string; clamp: string };
 
-const TITLE_TIERS: Record<"sm" | "md" | "lg", Tier[]> = {
+const TITLE_TIERS: Record<"sm" | "md" | "compact" | "lg", Tier[]> = {
   sm: [
     { maxLength: 20, font: "text-[9px]", clamp: "line-clamp-3" },
     { maxLength: 35, font: "text-[8px]", clamp: "line-clamp-4" },
@@ -30,6 +31,16 @@ const TITLE_TIERS: Record<"sm" | "md" | "lg", Tier[]> = {
       clamp: "line-clamp-[8]",
     },
   ],
+  compact: [
+    { maxLength: 25, font: "text-sm", clamp: "line-clamp-4" },
+    { maxLength: 45, font: "text-[12px]", clamp: "line-clamp-5" },
+    { maxLength: 70, font: "text-[10px]", clamp: "line-clamp-6" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[8.5px]",
+      clamp: "line-clamp-[8]",
+    },
+  ],
   lg: [
     { maxLength: 30, font: "text-lg", clamp: "line-clamp-6" },
     { maxLength: 55, font: "text-[15px]", clamp: "line-clamp-[7]" },
@@ -42,7 +53,7 @@ const TITLE_TIERS: Record<"sm" | "md" | "lg", Tier[]> = {
   ],
 };
 
-const AUTHOR_TIERS: Record<"md" | "lg", Tier[]> = {
+const AUTHOR_TIERS: Record<"md" | "compact" | "lg", Tier[]> = {
   md: [
     { maxLength: 10, font: "text-[7.5px]", clamp: "line-clamp-1" },
     { maxLength: 24, font: "text-[6.5px]", clamp: "line-clamp-2" },
@@ -50,6 +61,16 @@ const AUTHOR_TIERS: Record<"md" | "lg", Tier[]> = {
     {
       maxLength: Number.POSITIVE_INFINITY,
       font: "text-[4.5px]",
+      clamp: "line-clamp-[4]",
+    },
+  ],
+  compact: [
+    { maxLength: 10, font: "text-[9px]", clamp: "line-clamp-1" },
+    { maxLength: 24, font: "text-[8px]", clamp: "line-clamp-2" },
+    { maxLength: 42, font: "text-[7px]", clamp: "line-clamp-3" },
+    {
+      maxLength: Number.POSITIVE_INFINITY,
+      font: "text-[6px]",
       clamp: "line-clamp-[4]",
     },
   ],
@@ -79,7 +100,7 @@ export function BookCover({
 }: {
   title: string;
   author?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "compact" | "lg";
   className?: string;
 }) {
   const bg = pickColor(title);

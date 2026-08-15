@@ -23,6 +23,7 @@ export function SuggestionCard({
   ratingsCount,
   isAuthenticated,
   onAdd,
+  compact = false,
 }: {
   title: string;
   author: string | null;
@@ -32,6 +33,7 @@ export function SuggestionCard({
   ratingsCount: number | null;
   isAuthenticated: boolean;
   onAdd: () => Promise<void>;
+  compact?: boolean;
 }) {
   const [added, setAdded] = useState(false);
   const [isAdding, startAdd] = useTransition();
@@ -69,32 +71,54 @@ export function SuggestionCard({
   );
 
   return (
-    <BookCardShell>
+    <BookCardShell compact={compact}>
       <Dialog>
-        <DialogTrigger render={<button type="button" className="shrink-0" />}>
-          <BookCover title={title} author={author ?? undefined} size="md" />
+        <DialogTrigger
+          render={
+            <button
+              type="button"
+              className={compact ? undefined : "shrink-0"}
+            />
+          }
+        >
+          <BookCover
+            title={title}
+            author={author ?? undefined}
+            size={compact ? "compact" : "md"}
+          />
         </DialogTrigger>
-        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-          <DialogTrigger
-            render={
-              <button type="button" className="group/link min-w-0 text-left" />
-            }
-          >
-            <p className="truncate font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover/link:text-primary">
-              {title}
-            </p>
-            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
-              {author || unknownAuthor}
-              {yearOrDetail && ` · ${yearOrDetail}`}
-            </p>
-            {ratingLine}
-          </DialogTrigger>
-          {addButton && (
-            <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/40 pt-2.5">
+        {compact ? (
+          addButton && (
+            <div className="flex w-full justify-center border-t border-border/40 pt-2">
               {addButton}
             </div>
-          )}
-        </div>
+          )
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+            <DialogTrigger
+              render={
+                <button
+                  type="button"
+                  className="group/link min-w-0 text-left"
+                />
+              }
+            >
+              <p className="truncate font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover/link:text-primary">
+                {title}
+              </p>
+              <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+                {author || unknownAuthor}
+                {yearOrDetail && ` · ${yearOrDetail}`}
+              </p>
+              {ratingLine}
+            </DialogTrigger>
+            {addButton && (
+              <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/40 pt-2.5">
+                {addButton}
+              </div>
+            )}
+          </div>
+        )}
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl font-normal">

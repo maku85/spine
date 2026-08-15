@@ -13,24 +13,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateProfile } from "@/lib/actions/profile";
-import type { PreferredLanguage } from "@/lib/supabase/database.types";
+import type {
+  CardViewMode,
+  PreferredLanguage,
+} from "@/lib/supabase/database.types";
 
 const LANGUAGE_KEYS: PreferredLanguage[] = ["it", "en"];
+const CARD_VIEW_KEYS: CardViewMode[] = ["comfortable", "compact"];
 
 export function SettingsForm({
   username,
   displayName,
   avatarUrl,
   language,
+  cardView,
 }: {
   username: string;
   displayName: string | null;
   avatarUrl: string | null;
   language: PreferredLanguage;
+  cardView: CardViewMode;
 }) {
   const [state, action, pending] = useActionState(updateProfile, undefined);
   const t = useTranslations("Settings.form");
   const tLanguages = useTranslations("Settings.languages");
+  const tCardViews = useTranslations("Settings.cardViews");
   const common = useTranslations("Common.actions");
 
   return (
@@ -76,6 +83,24 @@ export function SettingsForm({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">{t("languageHint")}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="cardView">{t("cardView")}</Label>
+        <Select name="cardView" defaultValue={cardView}>
+          <SelectTrigger id="cardView" className="w-full">
+            <SelectValue>
+              {(value) => tCardViews(value as CardViewMode)}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {CARD_VIEW_KEYS.map((value) => (
+              <SelectItem key={value} value={value}>
+                {tCardViews(value)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">{t("cardViewHint")}</p>
       </div>
       {state?.error && (
         <p className="text-sm text-destructive">{state.error}</p>

@@ -205,11 +205,17 @@
       "displayName": "Nome visualizzato",
       "avatarUrl": "URL avatar",
       "language": "Lingua di lettura",
-      "languageHint": "Vedi sempre l'intero catalogo: questa scelta cambia solo la lingua del testo mostrato (e dell'interfaccia). Italiano: titolo e trama in italiano quando disponibili, altrimenti in inglese. Inglese: in inglese quando disponibile, altrimenti in italiano."
+      "languageHint": "Vedi sempre l'intero catalogo: questa scelta cambia solo la lingua del testo mostrato (e dell'interfaccia). Italiano: titolo e trama in italiano quando disponibili, altrimenti in inglese. Inglese: in inglese quando disponibile, altrimenti in italiano.",
+      "cardView": "Visualizzazione libri",
+      "cardViewHint": "Confortevole mostra la copertina con titolo, autore e azioni. Compatta mostra solo una copertina più grande, con le eventuali azioni sotto."
     },
     "languages": {
       "it": "Italiano",
       "en": "Inglese"
+    },
+    "cardViews": {
+      "comfortable": "Confortevole",
+      "compact": "Compatta"
     },
     "import": {
       "backLink": "Torna alle impostazioni",

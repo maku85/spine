@@ -66,10 +66,11 @@ export default async function SuggestionsPage() {
   } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("language")
+    .select("language, card_view")
     .eq("id", user?.id ?? "")
     .single();
   const preferredLanguage = profile?.language ?? "it";
+  const compact = profile?.card_view === "compact";
 
   if (!process.env.MONGODB_URI) {
     return (
@@ -164,6 +165,7 @@ export default async function SuggestionsPage() {
           hardcoverSections={hardcoverSections}
           topRatedSection={topRatedSection}
           isAuthenticated={Boolean(user)}
+          compact={compact}
         />
       ) : (
         <p className="text-sm text-muted-foreground">{t("allOwned")}</p>

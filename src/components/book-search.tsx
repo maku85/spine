@@ -45,9 +45,11 @@ const SORT_KEYS: BrowseSortKey[] = [
 export function BookSearch({
   preferredLanguage,
   isAuthenticated,
+  compact = false,
 }: {
   preferredLanguage: PreferredLanguage;
   isAuthenticated: boolean;
+  compact?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<BrowseSortKey>("rating_desc");
@@ -181,7 +183,13 @@ export function BookSearch({
                   <span className="h-[1px] flex-1 bg-gradient-to-r from-border via-border/50 to-transparent" />
                 </h2>
               ))}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              className={
+                compact
+                  ? "flex flex-wrap gap-4"
+                  : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              }
+            >
               {section.books.map((result) => (
                 <SearchResultCard
                   key={result.key}
@@ -189,6 +197,7 @@ export function BookSearch({
                   added={addedKeys.has(result.key)}
                   isAdding={isAdding}
                   isAuthenticated={isAuthenticated}
+                  compact={compact}
                   onAdd={() =>
                     startAdd(async () => {
                       if (result.source === "mongo") {
