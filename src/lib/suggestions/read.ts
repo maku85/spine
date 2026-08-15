@@ -48,12 +48,12 @@ function toSuggestedBook(
   preferredLanguage: PreferredLanguage,
 ): SuggestedBook {
   const translations = doc.translations ?? {};
+  const preferred = preferredLanguage === "it" ? translations.it : undefined;
   const translation =
-    preferredLanguage === "it"
-      ? (translations.it ?? Object.values(translations).find(Boolean))
-      : (translations.en ??
-        translations.it ??
-        Object.values(translations).find(Boolean));
+    preferred ??
+    translations.en ??
+    translations.it ??
+    Object.values(translations).find(Boolean);
   return {
     mongoId: doc._id,
     isbn: translation?.isbn ?? null,
@@ -82,15 +82,10 @@ export async function fetchTopRatedBooks(
     const collection = client
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
-    const displayFilter =
-      preferredLanguage === "it"
-        ? { "translations.it": { $exists: true } }
-        : {};
     const docs = await collection
       .find({
         ratingsCount: { $gte: MIN_RATINGS_COUNT },
         pendingReview: { $ne: true },
-        ...displayFilter,
       })
       .sort({ rating: -1, ratingsCount: -1 })
       .toArray();

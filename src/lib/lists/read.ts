@@ -37,13 +37,8 @@ type StoredBook = {
   pendingReview?: boolean;
 };
 
-function isDisplayable(
-  doc: StoredBook,
-  preferredLanguage: PreferredLanguage,
-): boolean {
-  if (doc.pendingReview) return false;
-  if (preferredLanguage !== "it") return true;
-  return Boolean(doc.translations?.it);
+function isDisplayable(doc: StoredBook): boolean {
+  return !doc.pendingReview;
 }
 
 function pickTranslation(
@@ -51,10 +46,9 @@ function pickTranslation(
   preferredLanguage: PreferredLanguage,
 ): Translation | undefined {
   const translations = doc.translations ?? {};
-  if (preferredLanguage === "it") {
-    return translations.it ?? Object.values(translations).find(Boolean);
-  }
+  const preferred = preferredLanguage === "it" ? translations.it : undefined;
   return (
+    preferred ??
     translations.en ??
     translations.it ??
     Object.values(translations).find(Boolean)
@@ -144,11 +138,7 @@ export async function fetchNotableLists(
         const entries: SuggestedListEntry[] = [];
         for (const entry of sortedEntries) {
           const match = byIsbn.get(entry.isbn);
-          if (
-            !match ||
-            seenBookIds.has(match._id) ||
-            !isDisplayable(match, preferredLanguage)
-          )
+          if (!match || seenBookIds.has(match._id) || !isDisplayable(match))
             continue;
           seenBookIds.add(match._id);
           entries.push({

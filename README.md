@@ -74,6 +74,38 @@ catalogued, and **cleaning up** cross-language duplicates that slip past
 the cheaper checks. Turning a list entry into a catalog book is the job of
 `resolve-list-books.mts` alone, regardless of which list it came from.
 
+## Running order
+
+1. **`import-books.mts`** — direct search import, creates `pendingReview`
+   candidates. Scheduled daily.
+2. **`import-nyt-bestsellers.mts`** / **`import-hardcover-lists.mts`** —
+   populate the `lists` collection only, independent of each other and of
+   step 1. NYT scheduled weekly, Hardcover monthly.
+3. **`resolve-list-books.mts`** — turns list entries into catalog books
+   (more `pendingReview` candidates) and retries the Italian translation
+   for already-catalogued, non-pending books still missing one. Manual,
+   bounded batches — the heaviest script here, kept off the schedule for
+   now.
+4. **`merge-duplicate-books.mts`** — checks `pendingReview` candidates from
+   steps 1 and 3, merges any cross-language duplicate, clears
+   `pendingReview` on whatever's confirmed unique. Scheduled daily,
+   shortly after step 1 and before step 5.
+5. **`enrich-books.mts`** — the heavy Italian-side enrichment (description,
+   year, isbn, rating, `olWorkKey`), scoped to non-pending books only.
+   Scheduled daily.
+6. **`import-hardcover-book-data.mts`** — series and mood tags via
+   `translations.en.isbn`, benefits from more books having already been
+   resolved by the earlier steps. Scheduled weekly.
+
+Step 3 (`resolve-list-books.mts`) is the one manual link in the chain: run
+it yourself in bounded batches to turn list entries into catalog books
+before the scheduled steps 4–5–6 can do anything useful with them. The
+rest of the schedule (1, 2, 4, 5, 6) runs unattended safely on its own,
+even between manual step-3 runs: `enrich-books.mts` simply skips
+`pendingReview` books until `merge-duplicate-books.mts` clears them,
+rather than wasting work on something that might turn out to be a
+duplicate.
+
 ## Importing books into MongoDB (scripts/import-books.mts)
 
 A standalone script (separate from the app) that populates a MongoDB Atlas
@@ -229,7 +261,8 @@ node --env-file=.env.local scripts/import-hardcover-lists.mts
 node --env-file=.env.local scripts/import-hardcover-lists.mts --max-lists=60 --dry-run
 ```
 
-Not scheduled — run manually as needed.
+Scheduled monthly via `.github/workflows/import-hardcover-lists.yml` —
+notable lists don't shift fast enough to need more than that.
 
 ## Resolving list entries into catalog books (scripts/resolve-list-books.mts)
 
@@ -265,7 +298,8 @@ node --env-file=.env.local scripts/import-hardcover-book-data.mts --dry-run
 node --env-file=.env.local scripts/import-hardcover-book-data.mts --max=50
 ```
 
-Not scheduled — run manually as needed.
+Scheduled weekly (Wednesdays) via
+`.github/workflows/import-hardcover-book-data.yml`.
 
 ## Merging cross-language duplicates (scripts/merge-duplicate-books.mts)
 
@@ -299,6 +333,7 @@ pnpm merge-duplicate-books --max=30
 pnpm merge-duplicate-books --force --max=100   # broader sweep, not just pending
 ```
 
-Not scheduled — run manually, ideally after `enrich-books.mts` and
-`resolve-list-books.mts` so more of the catalog has `olWorkKey` to match
-against.
+Scheduled daily via `.github/workflows/merge-duplicate-books.yml`, shortly
+after `import-books.mts` and before `enrich-books.mts` — see "Running
+order" above. Run with `--force` manually for a broader sweep beyond
+pending candidates.

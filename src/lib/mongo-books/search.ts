@@ -66,10 +66,9 @@ function pickTranslation(
   preferredLanguage: PreferredLanguage,
 ): Translation | undefined {
   const translations = doc.translations ?? {};
-  if (preferredLanguage === "it") {
-    return translations.it ?? Object.values(translations).find(Boolean);
-  }
+  const preferred = preferredLanguage === "it" ? translations.it : undefined;
   return (
+    preferred ??
     translations.en ??
     translations.it ??
     Object.values(translations).find(Boolean)
@@ -99,27 +98,10 @@ function toResult(
   };
 }
 
-const ITALIAN_MONGO_FILTER = { "translations.it": { $exists: true } };
-const ITALIAN_SEARCH_FILTER = {
-  exists: { path: "translations.it.isbn" },
-};
-
 const NOT_PENDING_REVIEW_MONGO_FILTER = { pendingReview: { $ne: true } };
 const NOT_PENDING_REVIEW_SEARCH_FILTER = {
   compound: { mustNot: [{ exists: { path: "pendingReview" } }] },
 };
-
-function mongoDisplayFilter(preferredLanguage: PreferredLanguage) {
-  return preferredLanguage === "it"
-    ? { $and: [ITALIAN_MONGO_FILTER, NOT_PENDING_REVIEW_MONGO_FILTER] }
-    : NOT_PENDING_REVIEW_MONGO_FILTER;
-}
-
-function searchDisplayFilter(preferredLanguage: PreferredLanguage) {
-  return preferredLanguage === "it"
-    ? [ITALIAN_SEARCH_FILTER, NOT_PENDING_REVIEW_SEARCH_FILTER]
-    : [NOT_PENDING_REVIEW_SEARCH_FILTER];
-}
 
 export async function searchMongoBooks(
   query: string,
@@ -140,7 +122,7 @@ export async function searchMongoBooks(
       .collection<StoredBook>(COLLECTION_NAME);
     const isbn = normalizeIsbn(trimmed);
     const words = trimmed.split(/\s+/).filter(Boolean);
-    const filter = searchDisplayFilter(preferredLanguage);
+    const filter = [NOT_PENDING_REVIEW_SEARCH_FILTER];
 
     const searchStage = isbn
       ? {
@@ -243,7 +225,7 @@ export async function browseMongoBooks(
     const collection = client
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
-    const filter = mongoDisplayFilter(preferredLanguage);
+    const filter = NOT_PENDING_REVIEW_MONGO_FILTER;
 
     const [totalCount, docs] = await Promise.all([
       collection.countDocuments(filter),
