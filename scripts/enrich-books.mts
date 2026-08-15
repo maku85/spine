@@ -25,6 +25,7 @@ type StoredBook = {
   rating?: number | null;
   ratingsCount?: number | null;
   enrichedAt?: Date;
+  pendingReview?: boolean;
 };
 
 type OLWorkMatch = {
@@ -268,9 +269,12 @@ async function main() {
       .db(DB_NAME)
       .collection<StoredBook>(COLLECTION_NAME);
 
-    const italianFilter = { "translations.it": { $exists: true } };
+    const italianFilter = {
+      "translations.it": { $exists: true },
+      pendingReview: { $ne: true },
+    };
     const query = isbn
-      ? { "translations.it.isbn": isbn }
+      ? { "translations.it.isbn": isbn, pendingReview: { $ne: true } }
       : force
         ? italianFilter
         : { enrichedAt: { $exists: false }, ...italianFilter };

@@ -95,6 +95,7 @@ async function main() {
 
     const retryQuery: Record<string, unknown> = {
       "translations.it": { $exists: false },
+      pendingReview: { $ne: true },
     };
     if (!force) {
       retryQuery.$or = [
