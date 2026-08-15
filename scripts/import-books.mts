@@ -66,6 +66,7 @@ type StoredBook = {
   alternateIsbns: string[];
   translations: Partial<Record<string, Translation>>;
   pendingReview?: boolean;
+  enrichedAt?: Date;
 };
 
 function labelOf(doc: Pick<StoredBook, "translations">): string {
@@ -316,17 +317,46 @@ async function main() {
 
           const sameEdition = await collection.findOne({ _id: book._id });
           if (sameEdition) {
-            await collection.updateOne(
-              { _id: book._id },
-              {
-                $set: {
-                  authors: book.authors,
-                  year: book.year,
-                  categories: book.categories,
-                  [`translations.${book.lang}`]: book.translation,
+            const currentTranslation = sameEdition.translations?.[book.lang];
+            if (sameEdition.enrichedAt) {
+              const freshIsbn =
+                currentTranslation?.isbn !== book.translation.isbn
+                  ? book.translation.isbn
+                  : null;
+              await collection.updateOne(
+                { _id: book._id },
+                {
+                  $set: {
+                    authors: book.authors,
+                    year: book.year,
+                    categories: book.categories,
+                  },
+                  ...(freshIsbn
+                    ? { $addToSet: { alternateIsbns: freshIsbn } }
+                    : {}),
                 },
-              },
-            );
+              );
+            } else {
+              const displacedIsbn =
+                currentTranslation?.isbn &&
+                currentTranslation.isbn !== book.translation.isbn
+                  ? currentTranslation.isbn
+                  : null;
+              await collection.updateOne(
+                { _id: book._id },
+                {
+                  $set: {
+                    authors: book.authors,
+                    year: book.year,
+                    categories: book.categories,
+                    [`translations.${book.lang}`]: book.translation,
+                  },
+                  ...(displacedIsbn
+                    ? { $addToSet: { alternateIsbns: displacedIsbn } }
+                    : {}),
+                },
+              );
+            }
             refreshed += 1;
             continue;
           }
