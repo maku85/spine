@@ -40,12 +40,6 @@ function ProfileRow({ profile }: { profile: ProfileSummary }) {
   );
 }
 
-export const revalidate = 300;
-
-export async function generateStaticParams() {
-  return [];
-}
-
 export default async function PublicProfilePage({
   params,
 }: {
