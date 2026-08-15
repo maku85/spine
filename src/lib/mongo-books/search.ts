@@ -36,7 +36,9 @@ export type BrowseSortKey =
   | "title_asc"
   | "title_desc"
   | "year_desc"
-  | "year_asc";
+  | "year_asc"
+  | "author_asc"
+  | "author_desc";
 
 type Translation = {
   isbn: string;
@@ -199,7 +201,7 @@ export async function searchMongoBooks(
 
 function displayTitleExpr(preferredLanguage: PreferredLanguage) {
   return preferredLanguage === "it"
-    ? "$translations.it.title"
+    ? { $ifNull: ["$translations.it.title", "$translations.en.title"] }
     : { $ifNull: ["$translations.en.title", "$translations.it.title"] };
 }
 
@@ -209,6 +211,8 @@ const BROWSE_SORT_SPECS: Record<BrowseSortKey, Record<string, 1 | -1>> = {
   title_desc: { displayTitle: -1 },
   year_desc: { year: -1 },
   year_asc: { year: 1 },
+  author_asc: { displayAuthor: 1 },
+  author_desc: { displayAuthor: -1 },
 };
 
 export async function browseMongoBooks(
@@ -232,7 +236,14 @@ export async function browseMongoBooks(
       collection
         .aggregate<StoredBook>([
           { $match: filter },
-          { $addFields: { displayTitle: displayTitleExpr(preferredLanguage) } },
+          {
+            $addFields: {
+              displayTitle: displayTitleExpr(preferredLanguage),
+              displayAuthor: {
+                $ifNull: [{ $arrayElemAt: ["$authors", 0] }, ""],
+              },
+            },
+          },
           { $sort: BROWSE_SORT_SPECS[sort] },
           { $skip: (page - 1) * SEARCH_PAGE_SIZE },
           { $limit: SEARCH_PAGE_SIZE },

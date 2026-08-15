@@ -118,6 +118,8 @@
       "rating_desc": "Top rated",
       "title_asc": "Title A-Z",
       "title_desc": "Title Z-A",
+      "author_asc": "Author A-Z",
+      "author_desc": "Author Z-A",
       "year_desc": "Newest",
       "year_asc": "Oldest"
     },
@@ -128,6 +130,7 @@
     "noResults": "No results",
     "resultsCount": "{count, plural, one {# result found} other {# results found}}",
     "pageLabel": "Page {page} of {totalPages}",
+    "unknownAuthor": "Unknown author",
     "scanner": {
       "triggerAriaLabel": "Scan barcode",
       "title": "Frame the barcode (ISBN)",

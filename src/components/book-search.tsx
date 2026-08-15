@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { IsbnScannerDialog } from "@/components/isbn-scanner-dialog";
 import { SearchResultCard } from "@/components/search-result-card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { addBookToCatalog, addMongoBookToCatalog } from "@/lib/actions/books";
+import { groupIntoSections } from "@/lib/book-sections";
 import type { BrowseSortKey } from "@/lib/mongo-books/search";
 import {
   browseBooks,
@@ -35,6 +36,8 @@ const SORT_KEYS: BrowseSortKey[] = [
   "rating_desc",
   "title_asc",
   "title_desc",
+  "author_asc",
+  "author_desc",
   "year_desc",
   "year_asc",
 ];
@@ -84,6 +87,17 @@ export function BookSearch({
     1,
     Math.ceil(resultsPage.totalCount / resultsPage.pageSize),
   );
+
+  const sections = useMemo(
+    () =>
+      groupIntoSections(
+        resultsPage.items,
+        isBrowsing ? sort : "",
+        t("unknownAuthor"),
+      ),
+    [resultsPage.items, isBrowsing, sort, t],
+  );
+  const isTitleSort = sort === "title_asc" || sort === "title_desc";
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,25 +160,47 @@ export function BookSearch({
             : t("resultsCount", { count: resultsPage.totalCount })}
         </p>
       )}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {resultsPage.items.map((result) => (
-          <SearchResultCard
-            key={result.key}
-            item={result}
-            added={addedKeys.has(result.key)}
-            isAdding={isAdding}
-            isAuthenticated={isAuthenticated}
-            onAdd={() =>
-              startAdd(async () => {
-                if (result.source === "mongo") {
-                  await addMongoBookToCatalog(result.book);
-                } else {
-                  await addBookToCatalog(result.book);
-                }
-                setAddedKeys((prev) => new Set(prev).add(result.key));
-              })
-            }
-          />
+      <div className="flex flex-col gap-8">
+        {sections.map((section, index) => (
+          <div key={`${index}-${section.header ?? "all"}`}>
+            {section.header &&
+              (isTitleSort ? (
+                <h2 className="mb-4 flex items-center gap-3">
+                  <span className="font-serif text-2xl font-medium text-primary">
+                    {section.header}
+                  </span>
+                  <span className="h-[1px] flex-1 bg-gradient-to-r from-border via-border/50 to-transparent" />
+                </h2>
+              ) : (
+                <h2 className="mb-4 flex items-center gap-3">
+                  <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase bg-secondary/60 px-2.5 py-0.5 rounded border border-border/40">
+                    {section.header}
+                  </span>
+                  <span className="h-[1px] flex-1 bg-gradient-to-r from-border via-border/50 to-transparent" />
+                </h2>
+              ))}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {section.books.map((result) => (
+                <SearchResultCard
+                  key={result.key}
+                  item={result}
+                  added={addedKeys.has(result.key)}
+                  isAdding={isAdding}
+                  isAuthenticated={isAuthenticated}
+                  onAdd={() =>
+                    startAdd(async () => {
+                      if (result.source === "mongo") {
+                        await addMongoBookToCatalog(result.book);
+                      } else {
+                        await addBookToCatalog(result.book);
+                      }
+                      setAddedKeys((prev) => new Set(prev).add(result.key));
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       {!isSearching && resultsPage.totalCount > resultsPage.pageSize && (

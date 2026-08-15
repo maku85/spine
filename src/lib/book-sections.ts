@@ -13,7 +13,7 @@ export type Section<T> = { header: string | null; books: T[] };
 
 export function groupIntoSections<
   T extends { title: string; authors: string[] },
->(sortedBooks: T[], sort: SortKey, unknownAuthorLabel: string): Section<T>[] {
+>(sortedBooks: T[], sort: string, unknownAuthorLabel: string): Section<T>[] {
   if (
     sort !== "title_asc" &&
     sort !== "title_desc" &&

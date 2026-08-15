@@ -220,8 +220,8 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {sections.map((section) => (
-            <div key={section.header ?? "all"}>
+          {sections.map((section, index) => (
+            <div key={`${index}-${section.header ?? "all"}`}>
               {section.header &&
                 (isTitleSort ? (
                   <h2 className="mb-4 flex items-center gap-3">

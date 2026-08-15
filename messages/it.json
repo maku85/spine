@@ -118,6 +118,8 @@
       "rating_desc": "Più votati",
       "title_asc": "Titolo A-Z",
       "title_desc": "Titolo Z-A",
+      "author_asc": "Autore A-Z",
+      "author_desc": "Autore Z-A",
       "year_desc": "Più recenti",
       "year_asc": "Più datati"
     },
@@ -128,6 +130,7 @@
     "noResults": "Nessun risultato",
     "resultsCount": "{count, plural, one {# risultato trovato} other {# risultati trovati}}",
     "pageLabel": "Pagina {page} di {totalPages}",
+    "unknownAuthor": "Autore sconosciuto",
     "scanner": {
       "triggerAriaLabel": "Scansiona codice a barre",
       "title": "Inquadra il codice a barre (ISBN)",
