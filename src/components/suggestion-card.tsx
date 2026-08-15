@@ -3,9 +3,9 @@
 import { Check, Star } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { BookCardShell } from "@/components/book-card-shell";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,7 @@ export function SuggestionCard({
       size="sm"
       variant={added ? "secondary" : "default"}
       disabled={added || isAdding}
-      className="mt-auto w-fit gap-1.5"
+      className="w-fit gap-1.5"
       onClick={() =>
         startAdd(async () => {
           await onAdd();
@@ -69,67 +69,72 @@ export function SuggestionCard({
   );
 
   return (
-    <Card className="tactile-card group/card relative overflow-hidden border border-border/80 bg-card/95 py-0 transition-all duration-300 hover:border-brass/50 hover:shadow-lg">
-      <div className="absolute top-0 right-3 h-2.5 w-2 bg-brass/70 rounded-b-xs opacity-70 group-hover/card:h-3.5 group-hover/card:opacity-100 transition-all" />
-      <CardContent className="flex gap-4 p-4">
-        <Dialog>
-          <DialogTrigger render={<button type="button" className="shrink-0" />}>
-            <BookCover title={title} author={author ?? undefined} size="md" />
+    <BookCardShell>
+      <Dialog>
+        <DialogTrigger render={<button type="button" className="shrink-0" />}>
+          <BookCover title={title} author={author ?? undefined} size="md" />
+        </DialogTrigger>
+        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+          <DialogTrigger
+            render={
+              <button type="button" className="group/link min-w-0 text-left" />
+            }
+          >
+            <p className="truncate font-serif text-base font-medium leading-snug text-foreground transition-colors group-hover/link:text-primary">
+              {title}
+            </p>
+            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+              {author || unknownAuthor}
+              {yearOrDetail && ` · ${yearOrDetail}`}
+            </p>
+            {ratingLine}
           </DialogTrigger>
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <DialogTrigger
-              render={<button type="button" className="min-w-0 text-left" />}
-            >
-              <p className="truncate font-serif text-base">{title}</p>
-              <p className="truncate text-sm text-muted-foreground">
-                {author || unknownAuthor}
-                {yearOrDetail && ` · ${yearOrDetail}`}
-              </p>
-              {ratingLine}
-            </DialogTrigger>
-            {addButton}
-          </div>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-xl font-normal">
-                {title}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex gap-5">
-              <BookCover
-                title={title}
-                author={author ?? undefined}
-                size="lg"
-                className="shrink-0"
-              />
-              <div className="flex min-w-0 flex-col gap-2 py-1">
-                <p className="text-sm font-sans font-medium text-foreground">
-                  {author || unknownAuthor}
-                </p>
-                {yearOrDetail && (
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {t("year")}: {yearOrDetail}
-                  </p>
-                )}
-                {ratingLine}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
-                {t("descriptionExcerpt")}
-              </span>
-              <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 font-serif text-sm leading-relaxed text-foreground/90 max-h-[220px] overflow-y-auto pr-3">
-                {description || t("noSuggestedDescription")}
-              </div>
-            </div>
-
-            <div className="mt-2 border-t border-border/40 pt-3 flex justify-end">
+          {addButton && (
+            <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/40 pt-2.5">
               {addButton}
             </div>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+          )}
+        </div>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl font-normal">
+              {title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-5">
+            <BookCover
+              title={title}
+              author={author ?? undefined}
+              size="lg"
+              className="shrink-0"
+            />
+            <div className="flex min-w-0 flex-col gap-2 py-1">
+              <p className="text-sm font-sans font-medium text-foreground">
+                {author || unknownAuthor}
+              </p>
+              {yearOrDetail && (
+                <p className="font-mono text-xs text-muted-foreground">
+                  {t("year")}: {yearOrDetail}
+                </p>
+              )}
+              {ratingLine}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
+              {t("descriptionExcerpt")}
+            </span>
+            <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 font-serif text-sm leading-relaxed text-foreground/90 max-h-[220px] overflow-y-auto pr-3">
+              {description || t("noSuggestedDescription")}
+            </div>
+          </div>
+
+          <div className="mt-2 border-t border-border/40 pt-3 flex justify-end">
+            {addButton}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </BookCardShell>
   );
 }
