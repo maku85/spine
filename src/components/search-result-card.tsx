@@ -23,11 +23,13 @@ export function SearchResultCard({
   item,
   added,
   isAdding,
+  isAuthenticated,
   onAdd,
 }: {
   item: SearchItem;
   added: boolean;
   isAdding: boolean;
+  isAuthenticated: boolean;
   onAdd: () => void;
 }) {
   const [details, setDetails] = useState<WorkDetails | null>(
@@ -65,7 +67,7 @@ export function SearchResultCard({
     }
   }
 
-  const addButton = (
+  const addButton = isAuthenticated ? (
     <Button
       size="sm"
       variant={added ? "secondary" : "default"}
@@ -76,7 +78,7 @@ export function SearchResultCard({
       {added && <Check className="size-4" />}
       {added ? common("added") : common("add")}
     </Button>
-  );
+  ) : null;
 
   return (
     <Card className="tactile-card group/card relative overflow-hidden border border-border/80 bg-card/95 py-0 transition-all duration-300 hover:border-brass/50 hover:shadow-lg">

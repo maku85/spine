@@ -163,6 +163,7 @@ export default async function SuggestionsPage() {
           nytSections={nytSections}
           hardcoverSections={hardcoverSections}
           topRatedSection={topRatedSection}
+          isAuthenticated={Boolean(user)}
         />
       ) : (
         <p className="text-sm text-muted-foreground">{t("allOwned")}</p>

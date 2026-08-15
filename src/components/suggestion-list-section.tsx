@@ -19,10 +19,12 @@ export function SuggestionListSection({
   label,
   items,
   defaultVisible = DEFAULT_VISIBLE,
+  isAuthenticated,
 }: {
   label: string;
   items: SectionItem[];
   defaultVisible?: number;
+  isAuthenticated: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const t = useTranslations("Suggestions");
@@ -45,6 +47,7 @@ export function SuggestionListSection({
             description={book.description}
             averageRating={book.rating}
             ratingsCount={book.ratingsCount}
+            isAuthenticated={isAuthenticated}
             onAdd={addMongoBookToCatalog.bind(null, book)}
           />
         ))}

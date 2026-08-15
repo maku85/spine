@@ -19,9 +19,11 @@ type Section = {
 function SectionGroup({
   sections,
   defaultVisible,
+  isAuthenticated,
 }: {
   sections: Section[];
   defaultVisible?: number;
+  isAuthenticated: boolean;
 }) {
   const t = useTranslations("Suggestions");
 
@@ -39,6 +41,7 @@ function SectionGroup({
           label={section.label}
           items={section.items}
           defaultVisible={defaultVisible}
+          isAuthenticated={isAuthenticated}
         />
       ))}
     </div>
@@ -49,10 +52,12 @@ export function SuggestionsTabs({
   nytSections,
   hardcoverSections,
   topRatedSection,
+  isAuthenticated,
 }: {
   nytSections: Section[];
   hardcoverSections: Section[];
   topRatedSection: Section;
+  isAuthenticated: boolean;
 }) {
   const t = useTranslations("Suggestions");
 
@@ -64,15 +69,22 @@ export function SuggestionsTabs({
         <TabsTab value="top-rated">{t("topRated")}</TabsTab>
       </TabsList>
       <TabsPanel value="nyt" className="mt-8">
-        <SectionGroup sections={nytSections} />
+        <SectionGroup
+          sections={nytSections}
+          isAuthenticated={isAuthenticated}
+        />
       </TabsPanel>
       <TabsPanel value="hardcover" className="mt-8">
-        <SectionGroup sections={hardcoverSections} />
+        <SectionGroup
+          sections={hardcoverSections}
+          isAuthenticated={isAuthenticated}
+        />
       </TabsPanel>
       <TabsPanel value="top-rated" className="mt-8">
         <SectionGroup
           sections={topRatedSection.items.length > 0 ? [topRatedSection] : []}
           defaultVisible={topRatedSection.items.length}
+          isAuthenticated={isAuthenticated}
         />
       </TabsPanel>
     </Tabs>

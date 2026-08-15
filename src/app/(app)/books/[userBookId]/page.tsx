@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AddToListDialog } from "@/components/add-to-list-dialog";
 import { BookCover } from "@/components/book-cover";
@@ -26,6 +26,7 @@ export default async function BookDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: userBook } = await supabase
     .from("user_books")

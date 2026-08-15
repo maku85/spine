@@ -29,7 +29,10 @@ export default async function ExplorePage() {
           <TabsTab value="users">{t("tabs.users")}</TabsTab>
         </TabsList>
         <TabsPanel value="books">
-          <BookSearch preferredLanguage={preferredLanguage} />
+          <BookSearch
+            preferredLanguage={preferredLanguage}
+            isAuthenticated={Boolean(user)}
+          />
         </TabsPanel>
         <TabsPanel value="users">
           <UserSearch />

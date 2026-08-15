@@ -9,7 +9,9 @@
       "explore": "Explore",
       "myPublicProfile": "My public profile",
       "settings": "Settings",
-      "signOut": "Sign out"
+      "signOut": "Sign out",
+      "login": "Log in",
+      "signup": "Sign up"
     },
     "actions": {
       "save": "Save",
@@ -248,13 +250,6 @@
     "volumeDescription": "Volume description"
   },
   "Auth": {
-    "branding": {
-      "badge": "PERSONAL LIBRARY",
-      "heading": "A refined home for every book you love.",
-      "body": "Organize your volumes, jot down your ratings, and rediscover the pleasure of browsing your personal catalog.",
-      "edition": "Digital Edition",
-      "tagline": "Curated reading space"
-    },
     "google": "Continue with Google",
     "or": "or",
     "login": {

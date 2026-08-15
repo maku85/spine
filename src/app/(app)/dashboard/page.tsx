@@ -1,5 +1,6 @@
 import { BookPlus, LibraryBig } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { type LibraryBook, LibraryView } from "@/components/library-view";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,11 @@ import { createClient } from "@/lib/supabase/server";
 export default async function DashboardPage() {
   const t = await getTranslations("Dashboard");
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   const { data: userBooks, error } = await supabase
     .from("user_books")
     .select("id, status, liked, added_at, books(title, authors)")

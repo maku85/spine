@@ -53,6 +53,7 @@ export function SimilarBooksSection({ title }: { title: string }) {
             yearOrDetail={result.firstPublishYear}
             averageRating={averageRating}
             ratingsCount={ratingsCount}
+            isAuthenticated
             onAdd={() => addBookToCatalog(result)}
           />
         ))}

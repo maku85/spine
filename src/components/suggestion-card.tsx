@@ -21,6 +21,7 @@ export function SuggestionCard({
   description,
   averageRating,
   ratingsCount,
+  isAuthenticated,
   onAdd,
 }: {
   title: string;
@@ -29,6 +30,7 @@ export function SuggestionCard({
   description?: string | null;
   averageRating: number | null;
   ratingsCount: number | null;
+  isAuthenticated: boolean;
   onAdd: () => Promise<void>;
 }) {
   const [added, setAdded] = useState(false);
@@ -40,7 +42,7 @@ export function SuggestionCard({
   const locale = useLocale();
   const numberLocale = locale === "en" ? "en-US" : "it-IT";
 
-  const addButton = (
+  const addButton = isAuthenticated ? (
     <Button
       size="sm"
       variant={added ? "secondary" : "default"}
@@ -56,7 +58,7 @@ export function SuggestionCard({
       {added && <Check className="size-4" />}
       {added ? common("added") : common("add")}
     </Button>
-  );
+  ) : null;
 
   const ratingLine = averageRating && (
     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

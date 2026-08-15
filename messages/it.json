@@ -9,7 +9,9 @@
       "explore": "Esplora",
       "myPublicProfile": "Il mio profilo pubblico",
       "settings": "Impostazioni",
-      "signOut": "Esci"
+      "signOut": "Esci",
+      "login": "Accedi",
+      "signup": "Registrati"
     },
     "actions": {
       "save": "Salva",
@@ -248,13 +250,6 @@
     "volumeDescription": "Descrizione del volume"
   },
   "Auth": {
-    "branding": {
-      "badge": "BIBLIOTECA PERSONALE",
-      "heading": "Una custodia raffinata per ogni libro che ami.",
-      "body": "Organizza i tuoi volumi, annota le tue valutazioni e riscopri il piacere di sfogliare il tuo catalogo personale.",
-      "edition": "Edizione Digitale",
-      "tagline": "Curated reading space"
-    },
     "google": "Continua con Google",
     "or": "oppure",
     "login": {

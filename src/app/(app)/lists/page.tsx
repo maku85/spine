@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ListManager, type ListSummary } from "@/components/list-manager";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +8,7 @@ export default async function ListsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
 
   const t = await getTranslations("Lists.page");
 

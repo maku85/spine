@@ -41,8 +41,10 @@ const SORT_KEYS: BrowseSortKey[] = [
 
 export function BookSearch({
   preferredLanguage,
+  isAuthenticated,
 }: {
   preferredLanguage: PreferredLanguage;
+  isAuthenticated: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<BrowseSortKey>("rating_desc");
@@ -151,6 +153,7 @@ export function BookSearch({
             item={result}
             added={addedKeys.has(result.key)}
             isAdding={isAdding}
+            isAuthenticated={isAuthenticated}
             onAdd={() =>
               startAdd(async () => {
                 if (result.source === "mongo") {

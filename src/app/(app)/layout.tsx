@@ -1,6 +1,5 @@
 import { BookOpen, Compass, LogOut, Settings, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { ProfileAvatar } from "@/components/profile-avatar";
@@ -18,15 +17,13 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, display_name, avatar_url")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("username, display_name, avatar_url")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
   const t = await getTranslations("Common.nav");
 
   return (
@@ -34,7 +31,7 @@ export default async function AppLayout({
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5">
           <Link
-            href="/dashboard"
+            href={user ? "/dashboard" : "/explore"}
             className="group flex items-center gap-2 font-serif text-xl tracking-tight transition-opacity hover:opacity-90 sm:gap-2.5 sm:text-2xl"
           >
             <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-xs ring-1 ring-brass/30 transition-transform group-hover:scale-105 sm:size-8">
@@ -88,47 +85,71 @@ export default async function AppLayout({
               {t("explore")}
             </Button>
 
-            {profile && (
-              <Link
-                href={`/u/${profile.username}`}
-                className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-muted"
-                title={t("myPublicProfile")}
-              >
-                <ProfileAvatar
-                  name={profile.display_name || profile.username}
-                  avatarUrl={profile.avatar_url}
-                  size="md"
-                  className="size-7 text-xs ring-1 ring-brass/40"
-                />
-                <span className="hidden text-xs font-mono text-muted-foreground sm:inline">
-                  @{profile.username}
-                </span>
-              </Link>
-            )}
+            {user ? (
+              <>
+                {profile && (
+                  <Link
+                    href={`/u/${profile.username}`}
+                    className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-muted"
+                    title={t("myPublicProfile")}
+                  >
+                    <ProfileAvatar
+                      name={profile.display_name || profile.username}
+                      avatarUrl={profile.avatar_url}
+                      size="md"
+                      className="size-7 text-xs ring-1 ring-brass/40"
+                    />
+                    <span className="hidden text-xs font-mono text-muted-foreground sm:inline">
+                      @{profile.username}
+                    </span>
+                  </Link>
+                )}
 
-            <Button
-              render={<Link href="/settings" />}
-              nativeButton={false}
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("settings")}
-              title={t("settings")}
-              className="hidden text-muted-foreground hover:text-foreground sm:flex"
-            >
-              <Settings className="size-4" />
-            </Button>
-            <form action={signOut} className="hidden sm:block">
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("signOut")}
-                title={t("signOut")}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <LogOut className="size-4" />
-              </Button>
-            </form>
+                <Button
+                  render={<Link href="/settings" />}
+                  nativeButton={false}
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("settings")}
+                  title={t("settings")}
+                  className="hidden text-muted-foreground hover:text-foreground sm:flex"
+                >
+                  <Settings className="size-4" />
+                </Button>
+                <form action={signOut} className="hidden sm:block">
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("signOut")}
+                    title={t("signOut")}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <LogOut className="size-4" />
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Button
+                  render={<Link href="/login" />}
+                  nativeButton={false}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  {t("login")}
+                </Button>
+                <Button
+                  render={<Link href="/signup" />}
+                  nativeButton={false}
+                  size="sm"
+                  className="gap-1.5 text-xs shadow-xs"
+                >
+                  {t("signup")}
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
