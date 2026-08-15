@@ -15,7 +15,8 @@
     "enrich-books": "node --env-file=.env.local scripts/enrich-books.mts",
     "import-hardcover-lists": "node --env-file=.env.local scripts/import-hardcover-lists.mts",
     "resolve-list-books": "node --env-file=.env.local scripts/resolve-list-books.mts",
-    "import-hardcover-book-data": "node --env-file=.env.local scripts/import-hardcover-book-data.mts"
+    "import-hardcover-book-data": "node --env-file=.env.local scripts/import-hardcover-book-data.mts",
+    "merge-duplicate-books": "node --env-file=.env.local scripts/merge-duplicate-books.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -92,7 +92,7 @@ export async function fetchTopRatedBooks(
         pendingReview: { $ne: true },
         ...displayFilter,
       })
-      .sort({ rating: -1 })
+      .sort({ rating: -1, ratingsCount: -1 })
       .toArray();
 
     return docs.map((doc) => toSuggestedBook(doc, preferredLanguage));

@@ -1,14 +1,12 @@
 import { Sparkles } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { SuggestionCard } from "@/components/suggestion-card";
-import { addMongoBookToCatalog } from "@/lib/actions/books";
+import { SuggestionsTabs } from "@/components/suggestions-tabs";
 import { fetchNotableLists, type SuggestedList } from "@/lib/lists/read";
 import { fetchTopRatedBooks, type SuggestedBook } from "@/lib/suggestions/read";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeTitle } from "@/lib/text";
 
-const BOOKS_PER_CATEGORY = 4;
-const TOP_RATED_LIMIT = 8;
+const TOP_RATED_LIMIT = 50;
 
 const NYT_LIST_ORDER = [
   "Narrativa",
@@ -120,17 +118,23 @@ export default async function SuggestionsPage() {
     return books.filter((book) => !isOwned(book));
   }
 
-  const listSections: Section[] = sortLists(lists).map((list) => ({
-    key: list.key,
-    label: list.source === "nyt" ? `NYT — ${list.name}` : list.name,
-    items: list.entries
-      .filter((entry) => !isOwned(entry.book))
-      .slice(0, BOOKS_PER_CATEGORY)
-      .map((entry) => ({
-        book: entry.book,
-        detail: entry.position ? `#${entry.position}` : entry.book.year,
-      })),
-  }));
+  function toSections(source: SuggestedList["source"]): Section[] {
+    return sortLists(lists.filter((list) => list.source === source))
+      .map((list) => ({
+        key: list.key,
+        label: source === "nyt" ? `NYT — ${list.name}` : list.name,
+        items: list.entries
+          .filter((entry) => !isOwned(entry.book))
+          .map((entry) => ({
+            book: entry.book,
+            detail: entry.position ? `#${entry.position}` : entry.book.year,
+          })),
+      }))
+      .filter((section) => section.items.length > 0);
+  }
+
+  const nytSections = toSections("nyt");
+  const hardcoverSections = toSections("hardcover");
 
   const topRatedSection: Section = {
     key: "top-rated",
@@ -140,12 +144,13 @@ export default async function SuggestionsPage() {
       .map((book) => ({ book, detail: book.year })),
   };
 
-  const sections = [...listSections, topRatedSection].filter(
-    (section) => section.items.length > 0,
-  );
+  const hasAnySuggestions =
+    nytSections.length > 0 ||
+    hardcoverSections.length > 0 ||
+    topRatedSection.items.length > 0;
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       <div>
         <h1 className="font-serif text-2xl">{t("page.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -153,31 +158,15 @@ export default async function SuggestionsPage() {
         </p>
       </div>
 
-      {sections.length === 0 && (
+      {hasAnySuggestions ? (
+        <SuggestionsTabs
+          nytSections={nytSections}
+          hardcoverSections={hardcoverSections}
+          topRatedSection={topRatedSection}
+        />
+      ) : (
         <p className="text-sm text-muted-foreground">{t("allOwned")}</p>
       )}
-
-      {sections.map((section) => (
-        <div key={section.key}>
-          <h2 className="mb-4 font-mono text-xs tracking-wide text-muted-foreground uppercase">
-            {section.label}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {section.items.map(({ book, detail }) => (
-              <SuggestionCard
-                key={book.mongoId}
-                title={book.title}
-                author={book.authors.join(", ") || null}
-                yearOrDetail={detail}
-                description={book.description}
-                averageRating={book.rating}
-                ratingsCount={book.ratingsCount}
-                onAdd={addMongoBookToCatalog.bind(null, book)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

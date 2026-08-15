@@ -143,7 +143,14 @@
       "subtitle": "Bestseller New York Times, liste Hardcover e libri più votati, dal tuo catalogo."
     },
     "topRated": "Più votati",
-    "allOwned": "Non ho trovato titoli da suggerirti al momento: probabilmente li hai già tutti in catalogo."
+    "allOwned": "Non ho trovato titoli da suggerirti al momento: probabilmente li hai già tutti in catalogo.",
+    "showMore": "Mostra altri {count}",
+    "showLess": "Mostra meno",
+    "emptyCategory": "Nessun suggerimento disponibile in questa categoria al momento.",
+    "tabs": {
+      "nyt": "New York Times",
+      "hardcover": "Hardcover"
+    }
   },
   "Settings": {
     "page": {

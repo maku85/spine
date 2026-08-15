@@ -4,6 +4,7 @@ import {
   fetchGoogleBooksByIsbn,
   findItalianTranslation,
   findWork,
+  isNarrativa,
   type Translation,
 } from "./lib/catalog-upsert.mts";
 
@@ -72,6 +73,7 @@ async function main() {
   let upgraded = 0;
   let withTranslation = 0;
   let skippedCollision = 0;
+  let skippedNonFiction = 0;
 
   try {
     const db = client.db(DB_NAME);
@@ -122,13 +124,28 @@ async function main() {
     const allIsbns = [...entryByIsbn.keys()];
 
     const matchedBooks = await booksCollection
-      .find({
-        $or: [
-          { alternateIsbns: { $in: allIsbns } },
-          { "translations.it.isbn": { $in: allIsbns } },
-          { "translations.en.isbn": { $in: allIsbns } },
-        ],
-      })
+      .aggregate<StoredBook>([
+        {
+          $addFields: {
+            _translationIsbns: {
+              $map: {
+                input: { $objectToArray: { $ifNull: ["$translations", {}] } },
+                as: "t",
+                in: "$$t.v.isbn",
+              },
+            },
+          },
+        },
+        {
+          $match: {
+            $or: [
+              { alternateIsbns: { $in: allIsbns } },
+              { _translationIsbns: { $in: allIsbns } },
+            ],
+          },
+        },
+        { $unset: "_translationIsbns" },
+      ])
       .toArray();
 
     const bookByIsbn = new Map<string, StoredBook>();
@@ -247,8 +264,21 @@ async function main() {
         categories: [],
         language: null,
       };
-      // NYT/Hardcover lists are English-language platforms, so default to
-      // "en" when Google Books has no data (and thus no language) for the ISBN.
+      if (!isNarrativa(original.categories)) {
+        skippedNonFiction += 1;
+        console.log(
+          `  · ${original.title}: non narrativa (${original.categories.join(", ") || "nessuna categoria"}), salto`,
+        );
+        if (!dryRun) {
+          await attemptsCollection.updateOne(
+            { _id: isbn },
+            { $set: { checkedAt: new Date() } },
+            { upsert: true },
+          );
+        }
+        continue;
+      }
+
       const lang = original.language ?? "en";
 
       const work = await findWork(isbn);
@@ -318,7 +348,7 @@ async function main() {
   }
 
   console.log(
-    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${inserted} nuovi libri inseriti, ${upgraded} arricchiti con traduzione italiana ora, ${withTranslation} con traduzione italiana in totale, ${skippedCollision} scartati per collisione isbn.`,
+    `\n${dryRun ? "Report (nessuna scrittura)" : "Fatto"}: ${inserted} nuovi libri inseriti, ${upgraded} arricchiti con traduzione italiana ora, ${withTranslation} con traduzione italiana in totale, ${skippedCollision} scartati per collisione isbn, ${skippedNonFiction} scartati perché non narrativa.`,
   );
 }
 

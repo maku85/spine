@@ -97,6 +97,10 @@ export function hasItalianIsbnPrefix(isbn: string): boolean {
   return toIsbn13(isbn).startsWith("97888");
 }
 
+export function isNarrativa(categories: string[]): boolean {
+  return categories.some((category) => /fiction|narrativa/i.test(category));
+}
+
 function extractYearLoose(text: string | undefined): number | null {
   if (!text) return null;
   const match = text.match(/\b(1[0-9]{3}|20[0-9]{2})\b/);
@@ -116,6 +120,43 @@ export async function findWork(isbn: string): Promise<Work | null> {
   return {
     workKey: doc.key.replace("/works/", ""),
     firstPublishYear: doc.first_publish_year ?? null,
+  };
+}
+
+export async function findWorkByTitleAuthor(
+  title: string,
+  author: string | undefined,
+): Promise<Work | null> {
+  const q = [title, author].filter(Boolean).join(" ");
+  const json = (await fetchOpenLibrary(
+    `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5&fields=key,title,author_name,first_publish_year`,
+  )) as {
+    docs?: Array<{
+      key?: string;
+      title?: string;
+      author_name?: string[];
+      first_publish_year?: number;
+    }>;
+  } | null;
+  await sleep(OL_REQUEST_DELAY_MS);
+
+  const wantedTitle = normalizeTitle(title);
+  const wantedAuthor = author ? normalizeTitle(author) : null;
+
+  const match = json?.docs?.find(
+    (doc) =>
+      doc.key &&
+      normalizeTitle(doc.title ?? "") === wantedTitle &&
+      (!wantedAuthor ||
+        (doc.author_name ?? []).some(
+          (name) => normalizeTitle(name) === wantedAuthor,
+        )),
+  );
+  if (!match?.key) return null;
+
+  return {
+    workKey: match.key.replace("/works/", ""),
+    firstPublishYear: match.first_publish_year ?? null,
   };
 }
 

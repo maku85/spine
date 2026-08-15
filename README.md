@@ -67,10 +67,11 @@ in application code, not stored on the document — see
 `src/lib/mongo-books/search.ts`, `src/lib/lists/read.ts`,
 `src/lib/suggestions/read.ts`.
 
-The scripts below fall into three groups: **importing** new books directly
+The scripts below fall into four groups: **importing** new books directly
 (search-driven), **importing/updating lists** (NYT, Hardcover — write only
-to the `lists` collection), and **resolving/enriching** what's already
-catalogued. Turning a list entry into a catalog book is the job of
+to the `lists` collection), **resolving/enriching** what's already
+catalogued, and **cleaning up** cross-language duplicates that slip past
+the cheaper checks. Turning a list entry into a catalog book is the job of
 `resolve-list-books.mts` alone, regardless of which list it came from.
 
 ## Importing books into MongoDB (scripts/import-books.mts)
@@ -265,3 +266,39 @@ node --env-file=.env.local scripts/import-hardcover-book-data.mts --max=50
 ```
 
 Not scheduled — run manually as needed.
+
+## Merging cross-language duplicates (scripts/merge-duplicate-books.mts)
+
+`import-books.mts`'s ISBN check can't catch a work catalogued twice under
+two different ISBNs in two different languages — that needs an Open
+Library work-key lookup, too costly to do per-candidate at import time.
+This script does that lookup here instead, by default scoped only to
+`pendingReview` candidates (new imports are hidden from every read path
+until this script has checked them): for each, it resolves the Open
+Library work key (reusing `olWorkKey` if another script already found it,
+otherwise one lookup) and checks whether another catalog entry already
+has that same `olWorkKey`. No match → the candidate is confirmed unique
+and goes live. A match → the two are merged into one document (existing
+`translations` entries win on conflict, the loser's ISBN becomes an
+alternate; missing language slots, mood tags, series, and rating are
+adopted from whichever side has them; the earlier `year` wins) and the
+loser is deleted. This is also the only place `pendingReview` ever gets
+cleared — once a candidate has been checked, merged or not, there's
+nothing left to wait for.
+
+Coverage depends on how much of the catalog already has `olWorkKey` set
+(from `enrich-books.mts` or `resolve-list-books.mts` having resolved a
+work before) — a candidate can only be matched against an existing entry
+that's already been through one of those. Run with `--force` to sweep the
+whole catalog instead of just pending candidates (also backfills
+`olWorkKey` on older entries that predate it), in bounded batches:
+
+```bash
+pnpm merge-duplicate-books --dry-run
+pnpm merge-duplicate-books --max=30
+pnpm merge-duplicate-books --force --max=100   # broader sweep, not just pending
+```
+
+Not scheduled — run manually, ideally after `enrich-books.mts` and
+`resolve-list-books.mts` so more of the catalog has `olWorkKey` to match
+against.

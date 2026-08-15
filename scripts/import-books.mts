@@ -1,5 +1,9 @@
 import { MongoClient } from "mongodb";
-import { computeWorkKey, type Translation } from "./lib/catalog-upsert.mts";
+import {
+  computeWorkKey,
+  isNarrativa,
+  type Translation,
+} from "./lib/catalog-upsert.mts";
 
 const GOOGLE_BOOKS_ENDPOINT = "https://www.googleapis.com/books/v1/volumes";
 const PAGE_SIZE = 40;
@@ -142,10 +146,6 @@ function extractIsbn(
   if (isbn13) return isbn13.identifier;
   const isbn10 = identifiers.find((id) => id.type === "ISBN_10");
   return isbn10?.identifier ?? null;
-}
-
-function isNarrativa(categories: string[]): boolean {
-  return categories.some((category) => /fiction|narrativa/i.test(category));
 }
 
 function isStudyGuide(title: string, lang: string): boolean {
@@ -361,13 +361,33 @@ async function main() {
             continue;
           }
 
-          const knownByIsbn = await collection.findOne({
-            $or: [
-              { alternateIsbns: book.translation.isbn },
-              { "translations.it.isbn": book.translation.isbn },
-              { "translations.en.isbn": book.translation.isbn },
-            ],
-          });
+          const [knownByIsbn] = await collection
+            .aggregate<StoredBook>([
+              {
+                $addFields: {
+                  _translationIsbns: {
+                    $map: {
+                      input: {
+                        $objectToArray: { $ifNull: ["$translations", {}] },
+                      },
+                      as: "t",
+                      in: "$$t.v.isbn",
+                    },
+                  },
+                },
+              },
+              {
+                $match: {
+                  $or: [
+                    { alternateIsbns: book.translation.isbn },
+                    { _translationIsbns: book.translation.isbn },
+                  ],
+                },
+              },
+              { $unset: "_translationIsbns" },
+              { $limit: 1 },
+            ])
+            .toArray();
           if (knownByIsbn) {
             const isCanonicalSomewhere = Object.values(
               knownByIsbn.translations ?? {},

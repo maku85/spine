@@ -1,11 +1,13 @@
 import { MongoClient } from "mongodb";
 import { curateGenres } from "../src/lib/genres.ts";
 import { isItalian } from "../src/lib/language.ts";
-import { normalizeTitle } from "../src/lib/text.ts";
 import {
   computeWorkKey,
   fetchGoogleBooksByIsbn,
+  findWork,
+  findWorkByTitleAuthor,
   type Translation,
+  type Work,
 } from "./lib/catalog-upsert.mts";
 
 const DB_NAME = process.env.MONGODB_DB ?? "books_catalog";
@@ -26,11 +28,6 @@ type StoredBook = {
   ratingsCount?: number | null;
   enrichedAt?: Date;
   pendingReview?: boolean;
-};
-
-type OLWorkMatch = {
-  workKey: string;
-  firstPublishYear: number | null;
 };
 
 type OLEdition = {
@@ -86,79 +83,18 @@ function keepItalianParagraphs(description: string): string {
   return italian.length > 0 ? italian.join("\n\n") : description;
 }
 
-async function findWorkByIsbn(isbn: string): Promise<OLWorkMatch | null> {
-  const json = (await fetchOpenLibrary(
-    `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1&fields=key,first_publish_year`,
-  )) as {
-    docs?: Array<{
-      key?: string;
-      first_publish_year?: number;
-    }>;
-  } | null;
-
-  const doc = json?.docs?.[0];
-  if (!doc?.key) return null;
-
-  return {
-    workKey: doc.key.replace("/works/", ""),
-    firstPublishYear: doc.first_publish_year ?? null,
-  };
-}
-
-async function findWorkByTitleAuthor(
-  title: string,
-  author: string | undefined,
-): Promise<OLWorkMatch | null> {
-  const q = [title, author].filter(Boolean).join(" ");
-  const json = (await fetchOpenLibrary(
-    `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5&fields=key,title,author_name,first_publish_year`,
-  )) as {
-    docs?: Array<{
-      key?: string;
-      title?: string;
-      author_name?: string[];
-      first_publish_year?: number;
-    }>;
-  } | null;
-
-  const wantedTitle = normalizeTitle(title);
-  const wantedAuthor = author ? normalizeTitle(author) : null;
-
-  const match = json?.docs?.find(
-    (doc) =>
-      doc.key &&
-      normalizeTitle(doc.title ?? "") === wantedTitle &&
-      (!wantedAuthor ||
-        (doc.author_name ?? []).some(
-          (name) => normalizeTitle(name) === wantedAuthor,
-        )),
-  );
-  if (!match?.key) return null;
-
-  return {
-    workKey: match.key.replace("/works/", ""),
-    firstPublishYear: match.first_publish_year ?? null,
-  };
-}
-
-async function resolveWork(book: StoredBook): Promise<OLWorkMatch | null> {
+async function resolveWork(book: StoredBook): Promise<Work | null> {
   const italian = book.translations?.it;
   const candidateIsbns = [italian?.isbn, ...(book.alternateIsbns ?? [])].filter(
     (value): value is string => Boolean(value),
   );
 
   for (const isbn of candidateIsbns.slice(0, 3)) {
-    const match = await findWorkByIsbn(isbn);
-    await sleep(REQUEST_DELAY_MS);
+    const match = await findWork(isbn);
     if (match) return match;
   }
 
-  const byTitle = await findWorkByTitleAuthor(
-    italian?.title ?? "",
-    book.authors[0],
-  );
-  await sleep(REQUEST_DELAY_MS);
-  return byTitle;
+  return findWorkByTitleAuthor(italian?.title ?? "", book.authors[0]);
 }
 
 async function fetchWorkDescription(

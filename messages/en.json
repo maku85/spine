@@ -143,7 +143,14 @@
       "subtitle": "New York Times bestsellers, Hardcover lists and top-rated books, from your catalog."
     },
     "topRated": "Top rated",
-    "allOwned": "No titles to suggest right now: you probably already have them all in your catalog."
+    "allOwned": "No titles to suggest right now: you probably already have them all in your catalog.",
+    "showMore": "Show {count} more",
+    "showLess": "Show less",
+    "emptyCategory": "No suggestions available in this category right now.",
+    "tabs": {
+      "nyt": "New York Times",
+      "hardcover": "Hardcover"
+    }
   },
   "Settings": {
     "page": {
