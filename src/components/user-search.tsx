@@ -46,7 +46,7 @@ export function UserSearch() {
       {!isSearching && query.trim() && results.length === 0 && (
         <p className="text-sm text-muted-foreground">{t("noResults")}</p>
       )}
-      <div className="grid gap-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {results.map((profile) => (
           <UserResultCard key={profile.id} profile={profile} />
         ))}

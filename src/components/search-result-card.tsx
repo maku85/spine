@@ -17,6 +17,8 @@ import {
 import { fetchWorkDetails, type WorkDetails } from "@/lib/open-library/search";
 import type { SearchItem } from "@/lib/search-books";
 
+const MIN_RATINGS_TO_SHOW = 10;
+
 export function SearchResultCard({
   item,
   added,
@@ -28,9 +30,6 @@ export function SearchResultCard({
   isAdding: boolean;
   onAdd: () => void;
 }) {
-  // Mongo results already carry description/categories (they came from our
-  // own bulk import); Open Library results only give us those on demand, so
-  // fetch them the first time the detail dialog opens for one.
   const [details, setDetails] = useState<WorkDetails | null>(
     item.source === "mongo"
       ? { description: item.book.description, subjects: item.book.categories }
@@ -47,7 +46,12 @@ export function SearchResultCard({
 
   const nytInfo =
     item.source === "mongo" && item.book.nytRank ? item.book : null;
-  const rating = item.source === "mongo" && item.book.rating ? item.book : null;
+  const rating =
+    item.source === "mongo" &&
+    item.book.rating &&
+    (item.book.ratingsCount ?? 0) >= MIN_RATINGS_TO_SHOW
+      ? item.book
+      : null;
   const moodTags = item.source === "mongo" ? item.book.moodTags : [];
   const series = item.source === "mongo" ? item.book.series : [];
   const primarySeries = series[0] ?? null;

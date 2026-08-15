@@ -1,11 +1,4 @@
-import {
-  BookOpen,
-  Compass,
-  LogOut,
-  Settings,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { BookOpen, Compass, LogOut, Settings, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -73,28 +66,6 @@ export default async function AppLayout({
             >
               <Sparkles className="size-3.5 text-brass" />
               {t("suggestions")}
-            </Button>
-
-            <Button
-              render={<Link href="/users" />}
-              nativeButton={false}
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("searchUsers")}
-              title={t("searchUsers")}
-              className="text-muted-foreground hover:text-foreground sm:hidden"
-            >
-              <Users className="size-4" />
-            </Button>
-            <Button
-              render={<Link href="/users" />}
-              nativeButton={false}
-              variant="ghost"
-              size="sm"
-              className="hidden gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
-            >
-              <Users className="size-3.5" />
-              {t("users")}
             </Button>
 
             <Button

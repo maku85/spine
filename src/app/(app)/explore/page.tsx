@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { BookSearch } from "@/components/book-search";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
+import { UserSearch } from "@/components/user-search";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ExplorePage() {
@@ -13,13 +15,26 @@ export default async function ExplorePage() {
     .eq("id", user?.id ?? "")
     .single();
   const preferredLanguage = profile?.language ?? "it";
-  const t = await getTranslations("Explore.page");
+  const t = await getTranslations("Explore");
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="font-serif text-2xl">{t("title")}</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("subtitle")}</p>
-      <BookSearch preferredLanguage={preferredLanguage} />
+    <div>
+      <h1 className="font-serif text-2xl">{t("page.title")}</h1>
+      <p className="mt-1 mb-6 text-sm text-muted-foreground">
+        {t("page.subtitle")}
+      </p>
+      <Tabs defaultValue="books">
+        <TabsList className="mb-6">
+          <TabsTab value="books">{t("tabs.books")}</TabsTab>
+          <TabsTab value="users">{t("tabs.users")}</TabsTab>
+        </TabsList>
+        <TabsPanel value="books">
+          <BookSearch preferredLanguage={preferredLanguage} />
+        </TabsPanel>
+        <TabsPanel value="users">
+          <UserSearch />
+        </TabsPanel>
+      </Tabs>
     </div>
   );
 }

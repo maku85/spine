@@ -6,8 +6,6 @@
   "Common": {
     "nav": {
       "suggestions": "Suggerimenti",
-      "users": "Utenti",
-      "searchUsers": "Cerca utenti",
       "explore": "Esplora",
       "myPublicProfile": "Il mio profilo pubblico",
       "settings": "Impostazioni",
@@ -107,6 +105,10 @@
     "page": {
       "title": "Esplora",
       "subtitle": "Sfoglia e ordina il catalogo, oppure cerca per titolo, autore o ISBN — anche inquadrando il codice a barre — per aggiungere un libro alla tua libreria."
+    },
+    "tabs": {
+      "books": "Libri",
+      "users": "Utenti"
     },
     "searchPlaceholder": "Cerca per titolo, autore o ISBN…",
     "sort": {
@@ -226,8 +228,6 @@
     },
     "followButton": { "following": "Seguito", "follow": "Segui" },
     "usersPage": {
-      "title": "Cerca utenti",
-      "subtitle": "Trova altri lettori per username o nome e seguili per raggiungere facilmente il loro profilo.",
       "searchPlaceholder": "Cerca per username o nome…",
       "searching": "Ricerca in corso…",
       "noResults": "Nessun utente trovato"
