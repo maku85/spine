@@ -11,7 +11,8 @@
       "settings": "Impostazioni",
       "signOut": "Esci",
       "login": "Accedi",
-      "signup": "Registrati"
+      "signup": "Registrati",
+      "stats": "Statistiche"
     },
     "actions": {
       "save": "Salva",
@@ -155,6 +156,34 @@
       "nyt": "New York Times",
       "hardcover": "Hardcover"
     }
+  },
+  "Stats": {
+    "title": "Statistiche catalogo",
+    "subtitle": "Stato aggiornato del catalogo.",
+    "notConfigured": "MONGODB_URI non configurata: le statistiche del catalogo non sono disponibili.",
+    "sections": {
+      "catalog": "Catalogo",
+      "lists": "Liste",
+      "recommendations": "Script consigliati"
+    },
+    "labels": {
+      "totalBooks": "Libri totali",
+      "pendingReview": "In attesa di revisione",
+      "withItalian": "Con traduzione italiana",
+      "withEnglish": "Con traduzione inglese",
+      "withOlWorkKey": "Con olWorkKey",
+      "totalLists": "Liste importate",
+      "listIsbnsTotal": "Isbn referenziati",
+      "listIsbnsUnresolved": "Isbn non ancora risolti"
+    },
+    "recommendations": {
+      "merge": "{count} libri in attesa di revisione, da controllare per duplicati incrociati tra lingue.",
+      "enrich": "{count} libri italiani non ancora arricchiti con trama, anno e rating da Open Library.",
+      "hardcover": "{count} libri con isbn inglese mai controllati su Hardcover per serie e mood tag.",
+      "resolveUnresolved": "{count} isbn dalle liste NYT/Hardcover ancora da trasformare in libri di catalogo.",
+      "resolveRetry": "{count} libri da riprovare per la traduzione italiana."
+    },
+    "allUpToDate": "Tutto aggiornato: nessuno script da lanciare al momento."
   },
   "Settings": {
     "page": {
